@@ -1,0 +1,30 @@
+{
+  "name": "zoomwebinarclient",
+  "version": "1.0.0",
+  "description": "A node client for handling Zoom webinars. Can be used to create webinars as well as get webinar attendance. Requires a zoom api and secret key. ",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest --runInBand --detectOpenHandles"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ocean-rey/zoom-webinar-client.git"
+  },
+  "keywords": [
+    "zoom",
+    "api",
+    "client",
+    "webinar",
+    "attendance",
+    "attended",
+    "registration",
+    "attendee",
+    "attend"
+  ],
+  "author": "@ocean_rey",
+  "license": "GPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/ocean-rey/zoom-webinar-client/issues"
+  },
+  "homepage": "https://github.com/ocean-rey/zoom-webinar-client#readme"
+}

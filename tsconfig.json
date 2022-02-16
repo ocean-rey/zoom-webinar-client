@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "types":["node"],
+    "typeRoots": ["./index.d.ts"],
     "target": "es6",
     "module": "ES2020",
     "outDir": "./lib/esm",
@@ -13,5 +14,5 @@
   },
   "include": [
     "./src"
-  ]
+, "index.d.ts"  ]
 }

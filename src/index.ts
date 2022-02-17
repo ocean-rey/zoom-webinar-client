@@ -84,7 +84,9 @@ export default class ZoomClient {
     return new Promise(async (resolve, reject) => {
       const duration = hoursBetweenDates(end, start);
       const startTime = start.toISOString();
-      const registrationCode = registrationTypeToNumber(approval);
+      const registrationCode = approval
+        ? registrationTypeToNumber(approval)
+        : 0;
       const requestBody = {
         topic: name,
         type: 9,
@@ -190,7 +192,7 @@ function generateRecurrenceJSON(
       }
       return {
         type: recurrenceTypeToCode(recurrence),
-        monthly_days: monthlyDays,
+        monthly_days: monthlyDays.join(),
         repeat_interval: interval,
       };
     case "weekly":
@@ -201,7 +203,7 @@ function generateRecurrenceJSON(
       }
       return {
         type: recurrenceTypeToCode(recurrence),
-        weekly_days: weekdays.map((x) => weekdaysToCode(x)),
+        weekly_days: weekdays.map((x) => weekdaysToCode(x)).join(),
         reapeat_interval: interval,
       };
     default:

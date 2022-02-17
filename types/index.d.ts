@@ -29,8 +29,6 @@ export type ZoomClientParams = {
   secretKey: string;
   timezone: string;
   user: string; // zoom account email (probably)
-  weekStart?: DayOfWeek; // defaults to sunday (inclusive)
-  weekEnd?: DayOfWeek; // defaults to thursday (inclusive)
 };
 
 export type Recording = "local" | "cloud" | "none";
@@ -55,7 +53,7 @@ export type RegisterToWebinarParams = {
   email: string;
 };
 
-type Participation = {
+export type Participation = {
   id: string;
   user_id: string;
   name: string;

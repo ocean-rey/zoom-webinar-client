@@ -1,5 +1,5 @@
 import { AxiosInstance } from "axios";
-import { Approval, Recurrence, DayOfWeek, Participation } from "../..";
+import { Approval, Recurrence, DayOfWeek, Participation } from "../../types/index"
 
 // note that this function rounds up. ie: an hour and a half becomes 2 hours.
 export function hoursBetweenDates(a: Date, b: Date) {

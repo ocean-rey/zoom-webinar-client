@@ -6,7 +6,7 @@ import {
   createDailyRecurringWebinarParams,
   RegisterToWebinarParams,
   Participation,
-} from "..";
+} from "../types/index";
 import {
   hoursBetweenDates,
   registrationTypeToNumber,
@@ -16,7 +16,7 @@ import {
 } from "./helpers";
 
 export default class ZoomClient {
-  #zoom: AxiosInstance;
+  _zoom: AxiosInstance;
   #token: string;
   #timezone: string;
   #user: string;
@@ -30,7 +30,7 @@ export default class ZoomClient {
       },
       secretKey
     ); // initialize the jwt
-    this.#zoom = axios.create({
+    this._zoom = axios.create({
       baseURL: "https://api.zoom.us/v2",
       headers: { Authorization: `Bearer ${this.#token}` },
     });
@@ -70,7 +70,7 @@ export default class ZoomClient {
         ? `users/${account}/webinars`
         : `users/${this.#user}/webinars`;
       try {
-        const response = await this.#zoom.post(requestURL, requestBody);
+        const response = await this._zoom.post(requestURL, requestBody);
         const webinarID = response.data.id;
         resolve(webinarID);
       } catch (error) {
@@ -123,7 +123,7 @@ export default class ZoomClient {
         ? `users/${account}/webinars`
         : `users/${this.#user}/webinars`;
       try {
-        const response = await this.#zoom.post(requestURL, requestBody);
+        const response = await this._zoom.post(requestURL, requestBody);
         const webinarID = response.data.id;
         resolve(webinarID);
       } catch (error) {
@@ -145,7 +145,7 @@ export default class ZoomClient {
         email,
       };
       try {
-        const resposne = await this.#zoom.post(
+        const resposne = await this._zoom.post(
           `/webinars/${webinarID}/registrants`
         );
         const joinURL = resposne.data.join_url;
@@ -160,7 +160,7 @@ export default class ZoomClient {
   async getWebinarAttendees(webinarID: string): Promise<Participation[]> {
     return new Promise(async (resolve, reject) => {
       try {
-        const instancesResponse = await this.#zoom.get(
+        const instancesResponse = await this._zoom.get(
           `/past_webinars/${webinarID}/instances`
         ); // because if its recurring we need to get attendance for every instances.
         const instances = instancesResponse.data.webinars.map(
@@ -170,7 +170,7 @@ export default class ZoomClient {
         for (let i = 0; i < instances.length; i++) {
           // iterate through instances
           userList.concat(
-            await paginationWebinarParticipants(this.#zoom, instances[i])
+            await paginationWebinarParticipants(this._zoom, instances[i])
           );
         }
         resolve(userList);

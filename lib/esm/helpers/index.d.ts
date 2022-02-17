@@ -1,5 +1,5 @@
 import { AxiosInstance } from "axios";
-import { Approval, Recurrence, DayOfWeek, Participation } from "../..";
+import { Approval, Recurrence, DayOfWeek, Participation } from "../../types/index";
 export declare function hoursBetweenDates(a: Date, b: Date): number;
 export declare function registrationTypeToNumber(registrationType?: Approval): 2 | 0 | 1;
 export declare function recurrenceTypeToCode(type: Recurrence): 2 | 1 | 3;

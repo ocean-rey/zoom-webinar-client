@@ -97,12 +97,12 @@ export default class ZoomClient {
           registration_type: registrationCode,
           auto_recording: recording ?? "none",
         },
-        recurrence: {
-          type: recurrenceTypeToCode(type),
-          repeat_interval: interval,
-          weekly_days: weekdays ? weekdays.map((x) => weekdaysToCode(x)) : "",
-          monthly_days: monthlyDays ?? "",
-        },
+        recurrence: generateRecurrenceJSON(
+          type,
+          interval,
+          weekdays,
+          monthlyDays
+        ),
         password,
         duration,
         agenda: agenda ?? "",
@@ -169,6 +169,43 @@ export default class ZoomClient {
 }
 
 // HELPFUL FUNCTIONS
+
+function generateRecurrenceJSON(
+  recurrence: Recurrence,
+  interval: number,
+  weekdays?: DayOfWeek[],
+  monthlyDays?: number[]
+) {
+  switch (recurrence) {
+    case "daily":
+      return { type: recurrenceTypeToCode(recurrence), interval: interval };
+    case "monthly":
+      if (!monthlyDays) {
+        throw new Error(
+          "Monthly recurrence must include the days on which the webinar should occur every month. ie: every 1st and 14th of the month: [1, 14]"
+        );
+      }
+      return {
+        type: recurrenceTypeToCode(recurrence),
+        monthly_days: monthlyDays,
+        interval,
+      };
+    case "weekly":
+      if (!weekdays) {
+        throw new Error(
+          'Must specify days of the week in which the webinar should occur. ie: every monday and tuesday: ["monday", "tuesday"]'
+        );
+      }
+      return {
+        type: recurrenceTypeToCode(recurrence),
+        weekly_days: weekdays.map((x) => weekdaysToCode(x)),
+        interval,
+      };
+    default:
+      throw new Error("Recurrence type must be one of: weekly, monthly, daily");
+  }
+}
+
 // note that this function rounds up. ie: an hour and a half becomes 2 hours.
 function hoursBetweenDates(a: Date, b: Date) {
   const aInMs = a.getDate();
@@ -238,7 +275,7 @@ async function paginationWebinarParticipants(
     const response = await zoom.get(
       `/report/webinars/${webinarID}/participants?page_size=300?nextPageToken=${nextPageToken}`
     );
-    console.log(response) // will be removed 
+    console.log(response); // will be removed
     results = results.concat(
       response.data.participants.map((x: Participation): Participation => {
         x.join_time = new Date(x.join_time);
@@ -246,7 +283,7 @@ async function paginationWebinarParticipants(
         return x;
       })
     );
-    console.log(results)
+    console.log(results);
     if (response.data.next_page_token?.length > 2) {
       nextPageToken = response.data.next_page_token;
       return paginationWebinarParticipants(
@@ -274,9 +311,9 @@ export type createDailyRecurringWebinarParams = {
   agenda?: string;
   account?: string;
   type: Recurrence;
-  interval?: number;
+  interval: number;
   weekdays?: DayOfWeek[]; // for weekly recurrence, the days of the week to occur on
-  monthlyDays?: number; // for monthly recurrence, value between 1 and 31
+  monthlyDays?: number[]; // for monthly recurrence, value between 1 and 31
   password: string;
 };
 

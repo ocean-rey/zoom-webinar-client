@@ -17,9 +17,9 @@ export declare type createDailyRecurringWebinarParams = {
     agenda?: string;
     account?: string;
     type: Recurrence;
-    interval?: number;
+    interval: number;
     weekdays?: DayOfWeek[];
-    monthlyDays?: number;
+    monthlyDays?: number[];
     password: string;
 };
 export declare type Recurrence = "daily" | "weekly" | "monthly";

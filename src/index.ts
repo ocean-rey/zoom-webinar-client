@@ -33,7 +33,7 @@ export default class ZoomClient {
     recording,
   }: CreateSingleWebinarParams): Promise<string> {
     return new Promise(async (resolve, reject) => {
-      const duration = hoursBetweenDates(end, start);
+      const duration = minutesBetweenDates(end, start);
       const startTime = start.toISOString();
       const registrationCode = approval
         ? registrationTypeToNumber(approval)
@@ -82,7 +82,7 @@ export default class ZoomClient {
     password,
   }: createDailyRecurringWebinarParams) {
     return new Promise(async (resolve, reject) => {
-      const duration = hoursBetweenDates(end, start);
+      const duration = minutesBetweenDates(end, start);
       const startTime = start.toISOString();
       const registrationCode = approval
         ? registrationTypeToNumber(approval)
@@ -92,6 +92,9 @@ export default class ZoomClient {
         type: 9,
         start_time: startTime,
         timezone: this.#timezone,
+        password: password,
+        duration: duration,
+        agenda: agenda ?? "",
         settings: {
           host_video: true,
           panelists_video: true,
@@ -105,9 +108,6 @@ export default class ZoomClient {
           weekdays,
           monthlyDays
         ),
-        password,
-        duration,
-        agenda: agenda ?? "",
       };
       const requestURL = account
         ? `users/${account}/webinars`
@@ -212,12 +212,12 @@ function generateRecurrenceJSON(
 }
 
 // note that this function rounds up. ie: an hour and a half becomes 2 hours.
-function hoursBetweenDates(a: Date, b: Date) {
+function minutesBetweenDates(a: Date, b: Date) {
   const aInMs = a.getDate();
   const bInMs = b.getDate();
   const deltaMs = Math.abs(aInMs - bInMs);
-  const deltaHours = Math.ceil(deltaMs / 3.6e6); // didn't know this notation works. neat
-  return deltaHours;
+  const deltaMinutes = Math.ceil(deltaMs / 60000); // didn't know this notation works. neat
+  return deltaMinutes;
 }
 
 function registrationTypeToNumber(registrationType?: Approval) {

@@ -137,7 +137,7 @@ export default class ZoomClient {
     firstName,
     lastName,
     email,
-  }: RegisterToWebinarParams) {
+  }: RegisterToWebinarParams): Promise<string> {
     return new Promise(async (resolve, reject) => {
       const requestBody = {
         first_name: firstName,

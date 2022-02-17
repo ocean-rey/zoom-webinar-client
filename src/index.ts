@@ -178,7 +178,10 @@ function generateRecurrenceJSON(
 ) {
   switch (recurrence) {
     case "daily":
-      return { type: recurrenceTypeToCode(recurrence), interval: interval };
+      return {
+        type: recurrenceTypeToCode(recurrence),
+        repeat_interval: interval,
+      };
     case "monthly":
       if (!monthlyDays) {
         throw new Error(
@@ -188,7 +191,7 @@ function generateRecurrenceJSON(
       return {
         type: recurrenceTypeToCode(recurrence),
         monthly_days: monthlyDays,
-        interval,
+        repeat_interval: interval,
       };
     case "weekly":
       if (!weekdays) {
@@ -199,7 +202,7 @@ function generateRecurrenceJSON(
       return {
         type: recurrenceTypeToCode(recurrence),
         weekly_days: weekdays.map((x) => weekdaysToCode(x)),
-        interval,
+        reapeat_interval: interval,
       };
     default:
       throw new Error("Recurrence type must be one of: weekly, monthly, daily");

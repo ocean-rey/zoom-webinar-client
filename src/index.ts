@@ -234,26 +234,32 @@ async function paginationWebinarParticipants(
   nextPageToken: string = "",
   results: Participation[] = []
 ): Promise<Participation[]> {
-  const response = await zoom.get(
-    `/report/webinars/${webinarID}/participants?page_size=300?nextPageToken=${nextPageToken}`
-  );
-  results = results.concat(
-    response.data.participants.map((x: Participation): Participation => {
-      x.join_time = new Date(x.join_time);
-      x.leave_time = new Date(x.leave_time);
-      return x;
-    })
-  );
-  if (response.data.next_page_token?.length > 2) {
-    nextPageToken = response.data.next_page_token;
-    return paginationWebinarParticipants(
-      zoom,
-      webinarID,
-      nextPageToken,
-      results
+  try {
+    const response = await zoom.get(
+      `/report/webinars/${webinarID}/participants?page_size=300?nextPageToken=${nextPageToken}`
     );
-  } else {
-    return results;
+    console.log(response) // will be removed 
+    results = results.concat(
+      response.data.participants.map((x: Participation): Participation => {
+        x.join_time = new Date(x.join_time);
+        x.leave_time = new Date(x.leave_time);
+        return x;
+      })
+    );
+    console.log(results)
+    if (response.data.next_page_token?.length > 2) {
+      nextPageToken = response.data.next_page_token;
+      return paginationWebinarParticipants(
+        zoom,
+        webinarID,
+        nextPageToken,
+        results
+      );
+    } else {
+      return results;
+    }
+  } catch (err) {
+    throw err;
   }
 }
 

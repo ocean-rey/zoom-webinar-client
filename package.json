@@ -2,11 +2,11 @@
   "name": "zoomwebinarclient",
   "version": "1.0.5",
   "description": "A node client for handling Zoom webinars. Can be used to create webinars as well as get webinar attendance. Requires a zoom api and secret key. ",
-  "main": "./lib/cjs/index.js",
-  "module": "./lib/esm/index.js",
+  "main": "./lib/esm/index.js",
+  "type": "module",
   "scripts": {
     "test": "jest --runInBand --detectOpenHandles",
-    "compile": "tsc -p tsconfig.json && tsc -p tsconfig-cjs.json",
+    "compile": "tsc -p tsconfig.json",
     "prepublish": "npm run compile"
   },
   "repository": {
@@ -33,7 +33,6 @@
   "devDependencies": {
     "@babel/cli": "^7.17.3",
     "@babel/core": "^7.17.4",
-    "@babel/plugin-transform-modules-commonjs": "^7.16.8",
     "@babel/preset-typescript": "^7.16.7",
     "@types/jest": "^27.4.0",
     "@types/jsonwebtoken": "^8.5.8",

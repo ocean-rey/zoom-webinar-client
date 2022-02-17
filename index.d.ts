@@ -54,3 +54,13 @@ export type RegisterToWebinarParams = {
   lastName: string;
   email: string;
 };
+
+type Participation = {
+  id: string;
+  user_id: string;
+  name: string;
+  user_email: string;
+  join_time: Date | string; // string before parsing
+  leave_time: Date | string;
+  duration: number; // zoom api doesn't specify what this represents lol. see: https://marketplace.zoom.us/docs/api-reference/zoom-api/methods/#operation/reportWebinarParticipants
+};

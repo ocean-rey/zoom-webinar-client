@@ -1,4 +1,5 @@
-import { Approval, Recurrence, DayOfWeek } from "../..";
+import { AxiosInstance } from "axios";
+import { Approval, Recurrence, DayOfWeek, Participation } from "../..";
 
 // note that this function rounds up. ie: an hour and a half becomes 2 hours.
 export function hoursBetweenDates(a: Date, b: Date) {
@@ -56,5 +57,34 @@ export function weekdaysToCode(day: DayOfWeek) {
       throw new Error(
         `weekdays must be one of "sunday" | "monday" | "tuesday" | "wednesday" | "thursday" | "friday" | "saturday"`
       );
+  }
+}
+
+export async function paginationWebinarParticipants(
+  zoom: AxiosInstance,
+  webinarID: string,
+  nextPageToken: string = "",
+  results: Participation[] = []
+): Promise<Participation[]> {
+  const response = await zoom.get(
+    `/report/webinars/${webinarID}/participants?page_size=300?nextPageToken=${nextPageToken}`
+  );
+  results = results.concat(
+    response.data.participants.map((x: Participation): Participation => {
+      x.join_time = new Date(x.join_time);
+      x.leave_time = new Date(x.leave_time);
+      return x;
+    })
+  );
+  if (response.data.next_page_token) {
+    nextPageToken = response.data.next_page_token;
+    return paginationWebinarParticipants(
+      zoom,
+      webinarID,
+      nextPageToken,
+      results
+    );
+  } else {
+    return results;
   }
 }

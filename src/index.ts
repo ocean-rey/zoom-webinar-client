@@ -5,12 +5,14 @@ import {
   CreateSingleWebinarParams,
   createDailyRecurringWebinarParams,
   RegisterToWebinarParams,
+  Participation,
 } from "..";
 import {
   hoursBetweenDates,
   registrationTypeToNumber,
   recurrenceTypeToCode,
   weekdaysToCode,
+  paginationWebinarParticipants,
 } from "./helpers";
 
 export default class ZoomClient {
@@ -155,22 +157,23 @@ export default class ZoomClient {
   }
 
   // INCOMPLETE
-  async getWebinarAttendees(webinarID: string) {
+  async getWebinarAttendees(webinarID: string): Promise<Participation[]> {
     return new Promise(async (resolve, reject) => {
       try {
         const instancesResponse = await this.#zoom.get(
           `/past_webinars/${webinarID}/instances`
         ); // because if its recurring we need to get attendance for every instances.
-        const instances: [] = instancesResponse.data.webinars.map(
+        const instances = instancesResponse.data.webinars.map(
           (x: { uuid: any }) => encodeURIComponent(encodeURIComponent(x.uuid)) // https://marketplace.zoom.us/docs/api-reference/zoom-api/methods/#operation/reportWebinarParticipants yes its this dumb
-        ); // this should be an array
-        const userList = []; // this is what we will eventually resolve
+        );
+        const userList: Participation[] = []; // this is what we will eventually resolve
         for (let i = 0; i < instances.length; i++) {
           // iterate through instances
-          const response = await this.#zoom.get(
-            `/report/webinars/${instances[i]}/participants`
-          ); // figure out pagination stuff
+          userList.concat(
+            await paginationWebinarParticipants(this.#zoom, instances[i])
+          );
         }
+        resolve(userList);
       } catch (error) {
         reject(error);
       }

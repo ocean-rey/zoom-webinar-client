@@ -1,5 +1,5 @@
 import { AxiosInstance } from "axios";
-import { ZoomClientParams, CreateSingleWebinarParams, createDailyRecurringWebinarParams, RegisterToWebinarParams, Participation } from "../types/index";
+import { ZoomClientParams, CreateSingleWebinarParams, createDailyRecurringWebinarParams, RegisterToWebinarParams, Participation } from "../../types/index";
 export default class ZoomClient {
     #private;
     _zoom: AxiosInstance;

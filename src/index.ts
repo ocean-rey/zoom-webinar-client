@@ -49,7 +49,7 @@ export default class ZoomClient {
     return new Promise(async (resolve, reject) => {
       const duration = hoursBetweenDates(end, start);
       const startTime = start.toISOString();
-      const registrationCode = registrationTypeToNumber(approval);
+      const registrationCode = approval?registrationTypeToNumber(approval):0;
       const requestBody = {
         topic: name,
         type: 5,
@@ -156,7 +156,6 @@ export default class ZoomClient {
     });
   }
 
-  // INCOMPLETE
   async getWebinarAttendees(webinarID: string): Promise<Participation[]> {
     return new Promise(async (resolve, reject) => {
       try {

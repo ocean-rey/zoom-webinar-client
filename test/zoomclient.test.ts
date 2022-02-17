@@ -1,4 +1,4 @@
-import ZoomClient from "../src";
+import ZoomClient from "../lib/esm";
 import { CreateSingleWebinarParams, ZoomClientParams } from "../types/index";
 import { singleWebinarResponse } from "./mocks.js";
 

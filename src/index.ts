@@ -244,7 +244,7 @@ async function paginationWebinarParticipants(
       return x;
     })
   );
-  if (response.data.next_page_token) {
+  if (response.data.next_page_token?.length > 2) {
     nextPageToken = response.data.next_page_token;
     return paginationWebinarParticipants(
       zoom,

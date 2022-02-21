@@ -67,50 +67,41 @@ export default class ZoomClient {
     });
   }
 
-  async createRecurringWebinar({
-    start,
-    end,
-    name,
-    agenda,
-    account,
-    type,
-    interval,
-    weekdays,
-    monthlyDays,
-    approval,
-    recording,
-    password,
-  }: createDailyRecurringWebinarParams) {
+  async createRecurringWebinar({ ...options }: createRecurringWebinarParams) {
     return new Promise(async (resolve, reject) => {
-      const duration = minutesBetweenDates(end, start);
-      const startTime = start.toISOString();
-      const registrationCode = approval
-        ? registrationTypeToNumber(approval)
+      const startTime = options.start.toISOString();
+      const registrationCode = options.approval
+        ? registrationTypeToNumber(options.approval)
         : 0;
       const requestBody = {
-        topic: name,
+        topic: options.name,
         type: 9,
         start_time: startTime,
         timezone: this.#timezone,
-        password: password,
-        duration: duration,
-        agenda: agenda ?? "",
+        password: options.password ?? undefined,
+        duration: options.duration,
+        agenda: options.agenda ?? "",
         settings: {
           host_video: true,
           panelists_video: true,
           hd_video: true,
           registration_type: registrationCode,
-          auto_recording: recording ?? "none",
+          auto_recording: options.recording ?? "none",
         },
-        recurrence: generateRecurrenceJSON(
-          type,
-          interval,
-          weekdays,
-          monthlyDays
-        ),
+        //@ts-expect-error
+        recurrence: generateRecurrenceJSON({
+          type: options.type,
+          interval: options.interval,
+          endAfter: options.endAfter,
+          params: {
+            week: options.monthlyWeek ?? undefined,
+            day: options.monthlyDay ?? undefined,
+            weekdays: options.weekdays ?? undefined,
+          },
+        }),
       };
-      const requestURL = account
-        ? `users/${account}/webinars`
+      const requestURL = options.account
+        ? `users/${options.account}/webinars`
         : `users/${this.#user}/webinars`;
       try {
         const response = await this._zoom.post(requestURL, requestBody);
@@ -172,43 +163,92 @@ export default class ZoomClient {
 
 // HELPFUL FUNCTIONS
 
-function generateRecurrenceJSON(
-  recurrence: Recurrence,
-  interval: number,
-  weekdays?: DayOfWeek[],
-  monthlyDays?: number[]
-) {
-  switch (recurrence) {
+type RecurrenceParams = {
+  type: Recurrence;
+  interval: number;
+  endAfter: Date | Number;
+};
+
+type WeeklyRecurrence = RecurrenceParams & {
+  type: "weekly";
+  params: { weekdays: DayOfWeek[] };
+};
+
+type MonthlyRecurrence = RecurrenceParams & {
+  type: "monthly";
+  params: { day: number } | { week: number; weekdays: DayOfWeek[] };
+};
+
+type DailyRecurrence = RecurrenceParams & {
+  type: "daily";
+};
+
+const generateRecurrenceJSON = (
+  options: WeeklyRecurrence | MonthlyRecurrence | DailyRecurrence
+) => {
+  const returnValue: {
+    end_times?: number;
+    type?: 1 | 2 | 3;
+    end_date_time?: string;
+    monthly_week?: -1 | 1 | 2 | 3 | 4;
+    monthly_day?: number;
+    monthly_week_day?: number;
+    weekly_days?: string;
+    repeat_interval: number;
+  } = { repeat_interval: options.interval };
+  if (typeof options.endAfter === "number") {
+    returnValue.end_times = options.endAfter;
+  } else {
+    // @ts-expect-error
+    returnValue.end_date_time = options.endAfter.toISOString();
+  }
+  switch (options.type) {
     case "daily":
-      return {
-        type: recurrenceTypeToCode(recurrence),
-        repeat_interval: interval,
-      };
+      if (options.interval > 90)
+        throw new Error("Daily interval must be less than or equal 90.");
+      return returnValue;
     case "monthly":
-      if (!monthlyDays) {
-        throw new Error(
-          "Monthly recurrence must include the days on which the webinar should occur every month. ie: every 1st and 14th of the month: [1, 14]"
+      if (options.interval > 3)
+        throw new Error("Monthly interval must be less than or equal 3");
+      // @ts-expect-error
+      if (options.params.day) {
+        // @ts-expect-error
+        returnValue.monthly_day = options.params.day;
+      } else {
+        // @ts-expect-error
+        const week = options.params.week;
+        if (!(week >= 1 && week <= 4) && week != -1)
+          throw new Error(
+            "Monthly recurrence week must be one of: (-1, 1, 2, 3, 4)"
+          );
+        returnValue.monthly_week = week;
+        // @ts-expect-error
+        returnValue.monthly_week_day = arrayOfWeekdaysToCSS(
+          // @ts-expect-error
+          options.params.weekdays
         );
       }
-      return {
-        type: recurrenceTypeToCode(recurrence),
-        monthly_days: monthlyDays.join(),
-        repeat_interval: interval,
-      };
+      return returnValue;
     case "weekly":
-      if (!weekdays) {
-        throw new Error(
-          'Must specify days of the week in which the webinar should occur. ie: every monday and tuesday: ["monday", "tuesday"]'
-        );
-      }
-      return {
-        type: recurrenceTypeToCode(recurrence),
-        weekly_days: weekdays.map((x) => weekdaysToCode(x)).join(),
-        reapeat_interval: interval,
-      };
+      if (options.interval > 12)
+        throw new Error("Weekly interval must be less than or equal 12");
+      // how do i not need a ts-expect-error here lmao
+      returnValue.weekly_days = arrayOfWeekdaysToCSS(options.params.weekdays);
+      return returnValue;
     default:
       throw new Error("Recurrence type must be one of: weekly, monthly, daily");
   }
+};
+
+// css = comma seperated string
+function arrayOfWeekdaysToCSS(arr: DayOfWeek[]) {
+  var returnString = "";
+  for (let i = 0; i < arr.length; i++) {
+    returnString = returnString.concat(
+      `${arr[i]} ${i != arr.length - 1 ? `,` : ``}`
+    );
+  }
+  return returnString;
 }
 
 // note that this function rounds up. ie: an hour and a half becomes 2 hours.
@@ -230,20 +270,6 @@ function registrationTypeToNumber(registrationType?: Approval) {
       return 1;
     default:
       return 2;
-  }
-}
-function recurrenceTypeToCode(type: Recurrence) {
-  switch (type) {
-    case "daily":
-      return 1;
-    case "weekly":
-      return 2;
-    case "monthly":
-      return 3;
-    default:
-      throw new Error(
-        'type property must be one of: "daily", "weekly". or "monthly"'
-      );
   }
 }
 
@@ -307,18 +333,20 @@ async function paginationWebinarParticipants(
 
 // HELPFUL TYPES
 
-export type createDailyRecurringWebinarParams = {
+export type createRecurringWebinarParams = {
   start: Date;
-  end: Date;
+  endAfter: Date | number;
   name: string;
+  duration: number;
   approval?: Approval;
   recording?: Recording;
   agenda?: string;
   account?: string;
   type: Recurrence;
   interval: number;
-  weekdays?: DayOfWeek[]; // for weekly recurrence, the days of the week to occur on
-  monthlyDays?: number[]; // for monthly recurrence, value between 1 and 31
+  monthlyWeek: -1 | 1 | 2 | 3 | 4;
+  weekdays?: DayOfWeek[]; // for weekly & monthly recurrence, the days of the week to occur on
+  monthlyDay: number; // for monthly recurrence, value between 1 and 31
   password: string;
 };
 

@@ -4,22 +4,24 @@ export default class ZoomClient {
     _zoom: AxiosInstance;
     constructor({ apiKey, secretKey, timezone, user }: ZoomClientParams);
     createSingleWebinar({ start, end, name, agenda, account, password, approval, recording, }: CreateSingleWebinarParams): Promise<string>;
-    createRecurringWebinar({ start, end, name, agenda, account, type, interval, weekdays, monthlyDays, approval, recording, password, }: createDailyRecurringWebinarParams): Promise<unknown>;
+    createRecurringWebinar({ ...options }: createRecurringWebinarParams): Promise<unknown>;
     registerToWebinar({ webinarID, firstName, lastName, email, }: RegisterToWebinarParams): Promise<string>;
     getWebinarAttendees(webinarID: string): Promise<Participation[]>;
 }
-export declare type createDailyRecurringWebinarParams = {
+export declare type createRecurringWebinarParams = {
     start: Date;
-    end: Date;
+    endAfter: Date | number;
     name: string;
+    duration: number;
     approval?: Approval;
     recording?: Recording;
     agenda?: string;
     account?: string;
     type: Recurrence;
     interval: number;
+    monthlyWeek: -1 | 1 | 2 | 3 | 4;
     weekdays?: DayOfWeek[];
-    monthlyDays?: number[];
+    monthlyDay: number;
     password: string;
 };
 export declare type Recurrence = "daily" | "weekly" | "monthly";

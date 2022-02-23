@@ -52,6 +52,7 @@ export default class ZoomClient {
           hd_video: true,
           approval_type: registrationCode,
           auto_recording: recording ?? "none",
+          meeting_authentication: false,
         },
         password,
         duration,
@@ -85,6 +86,7 @@ export default class ZoomClient {
         duration: options.duration,
         agenda: options.agenda ?? "",
         settings: {
+          meeting_authentication: false,
           host_video: true,
           panelists_video: true,
           hd_video: true,

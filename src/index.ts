@@ -33,7 +33,7 @@ export default class ZoomClient {
     recording,
   }: CreateSingleWebinarParams): Promise<string> {
     if (!(start && end && name)) {
-      throw new Error("start, end, and name are required parameters!")
+      throw new Error("start, end, and name are required parameters!");
     }
     return new Promise(async (resolve, reject) => {
       const duration = minutesBetweenDates(end, start);
@@ -132,7 +132,8 @@ export default class ZoomClient {
       };
       try {
         const resposne = await this._zoom.post(
-          `/webinars/${webinarID}/registrants`, requestBody
+          `/webinars/${webinarID}/registrants`,
+          requestBody
         );
         const joinURL = resposne.data.join_url;
         resolve(joinURL);
@@ -314,15 +315,7 @@ async function paginationWebinarParticipants(
     const response = await zoom.get(
       `/report/webinars/${webinarID}/participants?page_size=300?nextPageToken=${nextPageToken}`
     );
-    console.log(response); // will be removed
-    results = results.concat(
-      response.data.participants.map((x: Participation): Participation => {
-        x.join_time = new Date(x.join_time);
-        x.leave_time = new Date(x.leave_time);
-        return x;
-      })
-    );
-    console.log(results);
+    results = results.concat(response.data.participants);
     if (response.data.next_page_token?.length > 2) {
       nextPageToken = response.data.next_page_token;
       return paginationWebinarParticipants(

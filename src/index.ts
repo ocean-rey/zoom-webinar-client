@@ -188,14 +188,14 @@ const generateRecurrenceJSON = (
 ) => {
   const returnValue: {
     end_times?: number;
-    type?: 1 | 2 | 3;
+    type: 1 | 2 | 3;
     end_date_time?: string;
     monthly_week?: -1 | 1 | 2 | 3 | 4;
     monthly_day?: number;
     monthly_week_day?: number;
     weekly_days?: string;
     repeat_interval: number;
-  } = { repeat_interval: options.interval };
+  } = { repeat_interval: options.interval, type: 1 };
   if (typeof options.endAfter === "number") {
     returnValue.end_times = options.endAfter;
   } else {
@@ -204,10 +204,12 @@ const generateRecurrenceJSON = (
   }
   switch (options.type) {
     case "daily":
+      returnValue.type = 1;
       if (options.interval > 90)
         throw new Error("Daily interval must be less than or equal 90.");
       return returnValue;
     case "monthly":
+      returnValue.type = 3;
       if (options.interval > 3)
         throw new Error("Monthly interval must be less than or equal 3");
       // @ts-expect-error
@@ -230,6 +232,7 @@ const generateRecurrenceJSON = (
       }
       return returnValue;
     case "weekly":
+      returnValue.type = 2;
       if (options.interval > 12)
         throw new Error("Weekly interval must be less than or equal 12");
       // how do i not need a ts-expect-error here lmao

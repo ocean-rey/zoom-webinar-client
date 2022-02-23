@@ -32,6 +32,9 @@ export default class ZoomClient {
     approval,
     recording,
   }: CreateSingleWebinarParams): Promise<string> {
+    if (!(start && end && name)) {
+      throw new Error("start, end, and name are required parameters!")
+    }
     return new Promise(async (resolve, reject) => {
       const duration = minutesBetweenDates(end, start);
       const startTime = start.toISOString();

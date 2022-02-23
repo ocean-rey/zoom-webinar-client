@@ -251,7 +251,7 @@ function arrayOfWeekdaysToCSS(arr: DayOfWeek[]) {
   var returnString = "";
   for (let i = 0; i < arr.length; i++) {
     returnString = returnString.concat(
-      `${arr[i]} ${i != arr.length - 1 ? `,` : ``}`
+      `${weekdaysToCode(arr[i])} ${i != arr.length - 1 ? `,` : ``}`
     );
   }
   return returnString;

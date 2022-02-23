@@ -50,7 +50,7 @@ export default class ZoomClient {
           host_video: true,
           panelists_video: true,
           hd_video: true,
-          registration_type: registrationCode,
+          approval_type: registrationCode,
           auto_recording: recording ?? "none",
         },
         password,
@@ -88,7 +88,7 @@ export default class ZoomClient {
           host_video: true,
           panelists_video: true,
           hd_video: true,
-          registration_type: registrationCode,
+          approval_type: registrationCode,
           auto_recording: options.recording ?? "none",
         },
         //@ts-expect-error

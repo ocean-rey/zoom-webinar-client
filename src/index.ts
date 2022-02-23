@@ -130,7 +130,7 @@ export default class ZoomClient {
       };
       try {
         const resposne = await this._zoom.post(
-          `/webinars/${webinarID}/registrants`
+          `/webinars/${webinarID}/registrants`, requestBody
         );
         const joinURL = resposne.data.join_url;
         resolve(joinURL);

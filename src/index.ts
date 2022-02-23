@@ -318,7 +318,7 @@ async function paginationWebinarParticipants(
     const response = await zoom.get(
       `/report/webinars/${webinarID}/participants?page_size=300?nextPageToken=${nextPageToken}`
     );
-    results = results.concat(response.data);
+    results = results.concat(response.data.participants);
     if (response.data.next_page_token) {
       nextPageToken = response.data.next_page_token;
       return paginationWebinarParticipants(

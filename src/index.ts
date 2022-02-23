@@ -308,15 +308,18 @@ function weekdaysToCode(day: DayOfWeek) {
 async function paginationWebinarParticipants(
   zoom: AxiosInstance,
   webinarID: string,
-  nextPageToken: string = "",
-  results: Participation[] = []
+  nextPageToken?: string,
+  results?: Participation[]
 ): Promise<Participation[]> {
+  if(!results){
+    results = []
+  }
   try {
     const response = await zoom.get(
       `/report/webinars/${webinarID}/participants?page_size=300?nextPageToken=${nextPageToken}`
     );
-    results = results.concat(response.data.participants);
-    if (response.data.next_page_token?.length > 2) {
+    results = results.concat(response.data);
+    if (response.data.next_page_token) {
       nextPageToken = response.data.next_page_token;
       return paginationWebinarParticipants(
         zoom,

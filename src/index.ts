@@ -152,10 +152,10 @@ export default class ZoomClient {
         const instances = instancesResponse.data.webinars.map(
           (x: { uuid: any }) => encodeURIComponent(encodeURIComponent(x.uuid)) // https://marketplace.zoom.us/docs/api-reference/zoom-api/methods/#operation/reportWebinarParticipants yes its this dumb
         );
-        const userList: Participation[] = []; // this is what we will eventually resolve
+        var userList: Participation[] = []; // this is what we will eventually resolve
         for (let i = 0; i < instances.length; i++) {
           // iterate through instances
-          userList.concat(
+          userList = userList.concat(
             await paginationWebinarParticipants(this._zoom, instances[i])
           );
         }

@@ -118,6 +118,20 @@ export default class ZoomClient {
     });
   }
 
+  async updateWebinar(
+    webinarID: string,
+    parameters: {
+      title?: string;
+      agenda?: string;
+      duration?: number;
+      start: Date;
+      recurrence?: RecurrenceOptions;
+    },
+    occuranceID?: string
+  ) {
+    // to-do
+  }
+
   async registerToWebinar({
     webinarID,
     firstName,
@@ -188,6 +202,8 @@ type MonthlyRecurrence = RecurrenceParams & {
 type DailyRecurrence = RecurrenceParams & {
   type: "daily";
 };
+
+type RecurrenceOptions = WeeklyRecurrence | MonthlyRecurrence | DailyRecurrence;
 
 const generateRecurrenceJSON = (
   options: WeeklyRecurrence | MonthlyRecurrence | DailyRecurrence
@@ -311,8 +327,8 @@ async function paginationWebinarParticipants(
   nextPageToken?: string,
   results?: Participation[]
 ): Promise<Participation[]> {
-  if(!results){
-    results = []
+  if (!results) {
+    results = [];
   }
   try {
     const response = await zoom.get(

@@ -24,19 +24,18 @@ export default class ZoomClient {
 
   async createSingleWebinar({
     start,
-    end,
+    duration,
     name,
     agenda,
     account,
     password,
     approval,
     recording,
-  }: CreateSingleWebinarParams): Promise<string> {
-    if (!(start && end && name)) {
-      throw new Error("start, end, and name are required parameters!");
+  }: CreateWebinarBaseParams): Promise<string> {
+    if (!(start && duration && name)) {
+      throw new Error("start, duration, and name are required parameters!");
     }
     return new Promise(async (resolve, reject) => {
-      const duration = minutesBetweenDates(end, start);
       const startTime = start.toISOString();
       const registrationCode = approval
         ? registrationTypeToNumber(approval)
@@ -71,7 +70,7 @@ export default class ZoomClient {
     });
   }
 
-  async createRecurringWebinar({ ...options }: createRecurringWebinarParams) {
+  async createRecurringWebinar({ ...options }: CreateRecurringWebinarParams) {
     return new Promise(async (resolve, reject) => {
       const startTime = options.start.toISOString();
       const registrationCode = options.approval
@@ -93,18 +92,22 @@ export default class ZoomClient {
           approval_type: registrationCode,
           auto_recording: options.recording ?? "none",
         },
-        //@ts-expect-error
-        recurrence: generateRecurrenceJSON({
-          type: options.type,
-          interval: options.interval,
-          endAfter: options.endAfter,
-          params: {
-            week: options.monthlyWeek ?? undefined,
-            day: options.monthlyDay ?? undefined,
-            weekdays: options.weekdays ?? undefined,
-          },
-        }),
+        recurrence:
+          options.type === "daily"
+            ? generateRecurrenceJSON({
+                type: options.type,
+                interval: options.interval,
+                endAfter: options.endAfter,
+              })
+            : generateRecurrenceJSON({
+                type: options.type,
+                interval: options.interval,
+                endAfter: options.endAfter,
+                //@ts-expect-error because if type is week then monthly params are not assignable and vice versa
+                params: options.params,
+              }),
       };
+      
       const requestURL = options.account
         ? `users/${options.account}/webinars`
         : `users/${this.#user}/webinars`;
@@ -116,20 +119,6 @@ export default class ZoomClient {
         reject(error);
       }
     });
-  }
-
-  async updateWebinar(
-    webinarID: string,
-    parameters: {
-      title?: string;
-      agenda?: string;
-      duration?: number;
-      start: Date;
-      recurrence?: RecurrenceOptions;
-    },
-    occuranceID?: string
-  ) {
-    // to-do
   }
 
   async registerToWebinar({
@@ -182,28 +171,6 @@ export default class ZoomClient {
 }
 
 // HELPFUL FUNCTIONS
-
-type RecurrenceParams = {
-  type: Recurrence;
-  interval: number;
-  endAfter: Date | Number;
-};
-
-type WeeklyRecurrence = RecurrenceParams & {
-  type: "weekly";
-  params: { weekdays: DayOfWeek[] };
-};
-
-type MonthlyRecurrence = RecurrenceParams & {
-  type: "monthly";
-  params: { day: number } | { week: number; weekdays: DayOfWeek[] };
-};
-
-type DailyRecurrence = RecurrenceParams & {
-  type: "daily";
-};
-
-type RecurrenceOptions = WeeklyRecurrence | MonthlyRecurrence | DailyRecurrence;
 
 const generateRecurrenceJSON = (
   options: WeeklyRecurrence | MonthlyRecurrence | DailyRecurrence
@@ -353,26 +320,10 @@ async function paginationWebinarParticipants(
 
 // HELPFUL TYPES
 
-export type createRecurringWebinarParams = {
-  start: Date;
-  endAfter: Date | number;
-  name: string;
-  duration: number;
-  approval?: Approval;
-  recording?: Recording;
-  agenda?: string;
-  account?: string;
-  type: Recurrence;
-  interval: number;
-  monthlyWeek: -1 | 1 | 2 | 3 | 4;
-  weekdays?: DayOfWeek[]; // for weekly & monthly recurrence, the days of the week to occur on
-  monthlyDay: number; // for monthly recurrence, value between 1 and 31
-  password: string;
-};
-
-export type Recurrence = "daily" | "weekly" | "monthly";
-
-export type DayOfWeek =
+type Recording = "local" | "cloud" | "none";
+type Approval = "registration" | "registration+approval" | "none";
+type Recurrence = "daily" | "weekly" | "monthly";
+type DayOfWeek =
   | "sunday"
   | "monday"
   | "tuesday"
@@ -381,36 +332,60 @@ export type DayOfWeek =
   | "friday"
   | "saturday";
 
-export type ZoomClientParams = {
+type RecurrenceParams = {
+  type: Recurrence;
+  interval: number;
+  endAfter: Date | Number;
+};
+
+type WeeklyRecurrence = RecurrenceParams & {
+  type: "weekly";
+  params: { weekdays: DayOfWeek[] };
+};
+
+type MonthlyRecurrence = RecurrenceParams & {
+  type: "monthly";
+  params: { day: number } | { week: -1 | 1 | 2 | 3 | 4; weekdays: DayOfWeek[] };
+};
+
+type DailyRecurrence = RecurrenceParams & {
+  type: "daily";
+};
+
+type RecurrenceOptions = WeeklyRecurrence | MonthlyRecurrence | DailyRecurrence;
+
+type CreateRecurringWebinarParams = CreateWebinarBaseParams &
+  RecurrenceOptions & {
+    endAfter: Date | number;
+    interval: number;
+  };
+
+type ZoomClientParams = {
   apiKey: string;
   secretKey: string;
   timezone: string;
   user: string; // zoom account email (probably)
 };
 
-export type Recording = "local" | "cloud" | "none";
-
-export type Approval = "registration" | "registration+approval" | "none";
-
-export type CreateSingleWebinarParams = {
+type CreateWebinarBaseParams = {
   start: Date;
-  end: Date;
   name: string;
   agenda?: string;
-  account?: string; // specify the account to be used if this api key has access to webinar creation on multiple accounts (and you want to create the webinar on one of those accounts)
+  account?: string; // specify the account to be used if this api key has access to webinar creation on multiple accounts (and you want to Create the webinar on one of those accounts)
   password?: string;
   approval?: Approval;
   recording?: Recording;
+  duration: number;
 };
 
-export type RegisterToWebinarParams = {
+type RegisterToWebinarParams = {
   webinarID: string;
   firstName: string;
   lastName: string;
   email: string;
 };
 
-export type Participation = {
+type Participation = {
   id: string;
   user_id: string;
   name: string;

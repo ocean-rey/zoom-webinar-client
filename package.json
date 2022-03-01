@@ -1,6 +1,6 @@
 {
   "name": "zoomwebinarclient",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "A node client for handling Zoom webinars. Can be used to create webinars as well as get webinar attendance. Requires a zoom api and secret key. ",
   "main": "./lib/esm/index.js",
   "type": "module",

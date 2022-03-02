@@ -35,7 +35,7 @@ export default class ZoomClient {
     if (!(start && duration && name)) {
       throw new Error("start, duration, and name are required parameters!");
     }
-    return new Promise(async (resolve, reject) => {
+    return new Promise<string>(async (resolve, reject) => {
       const startTime = start.toISOString();
       const registrationCode = approval
         ? registrationTypeToNumber(approval)
@@ -70,8 +70,10 @@ export default class ZoomClient {
     });
   }
 
-  async createRecurringWebinar({ ...options }: CreateRecurringWebinarParams) {
-    return new Promise(async (resolve, reject) => {
+  async createRecurringWebinar({
+    ...options
+  }: CreateRecurringWebinarParams): Promise<string> {
+    return new Promise<string>(async (resolve, reject) => {
       const startTime = options.start.toISOString();
       const registrationCode = options.approval
         ? registrationTypeToNumber(options.approval)
@@ -107,7 +109,7 @@ export default class ZoomClient {
                 params: options.params,
               }),
       };
-      
+
       const requestURL = options.account
         ? `users/${options.account}/webinars`
         : `users/${this.#user}/webinars`;

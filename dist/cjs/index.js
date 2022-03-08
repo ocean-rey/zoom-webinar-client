@@ -1,3 +1,4 @@
+"use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -29,21 +30,25 @@ var __rest = (this && this.__rest) || function (s, e) {
         }
     return t;
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 var _ZoomClient_token, _ZoomClient_timezone, _ZoomClient_user;
-import jwt from "jsonwebtoken";
-import axios from "axios";
-export default class ZoomClient {
+Object.defineProperty(exports, "__esModule", { value: true });
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const axios_1 = __importDefault(require("axios"));
+class ZoomClient {
     constructor({ apiKey, secretKey, timezone, user }) {
         _ZoomClient_token.set(this, void 0);
         _ZoomClient_timezone.set(this, void 0);
         _ZoomClient_user.set(this, void 0);
         __classPrivateFieldSet(this, _ZoomClient_timezone, timezone !== null && timezone !== void 0 ? timezone : "Asia/Riyadh", "f");
         __classPrivateFieldSet(this, _ZoomClient_user, user, "f");
-        __classPrivateFieldSet(this, _ZoomClient_token, jwt.sign({
+        __classPrivateFieldSet(this, _ZoomClient_token, jsonwebtoken_1.default.sign({
             iss: apiKey,
             exp: Math.floor(Date.now() / 1000) + 10000, // this can probably be simplified lol
         }, secretKey), "f"); // initialize the jwt
-        this._zoom = axios.create({
+        this._zoom = axios_1.default.create({
             baseURL: "https://api.zoom.us/v2",
             headers: { Authorization: `Bearer ${__classPrivateFieldGet(this, _ZoomClient_token, "f")}` },
         });
@@ -182,6 +187,7 @@ export default class ZoomClient {
         });
     }
 }
+exports.default = ZoomClient;
 _ZoomClient_token = new WeakMap(), _ZoomClient_timezone = new WeakMap(), _ZoomClient_user = new WeakMap();
 // HELPFUL FUNCTIONS
 const generateRecurrenceJSON = (options) => {

@@ -186,10 +186,113 @@ class ZoomClient {
             }));
         });
     }
+    deleteWebinar(webinarID) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
+                try {
+                    const res = yield this._zoom.delete(`/webinars/${webinarID}`);
+                    switch (res.status) {
+                        case 204:
+                        case 200:
+                            resolve();
+                            break;
+                        case 300:
+                            throw new Error(`Invalid webinar ID. Zoom response: ${res.statusText}`);
+                        case 400:
+                            throw new Error(`Bad Request. Zoom response: ${res.statusText}`);
+                        case 404:
+                            throw new Error(`Webinar not found or expired. Zoom response: ${res.statusText}`);
+                    }
+                    resolve();
+                }
+                catch (error) {
+                    reject(error);
+                }
+            }));
+        });
+    }
+    updateWebinar(_a) {
+        var params = __rest(_a, []);
+        return __awaiter(this, void 0, void 0, function* () {
+            return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
+                var _b, _c, _d, _e, _f, _g, _h, _j;
+                const { options } = params;
+                // recurrence always requires a type
+                let recurrenceJSON;
+                if (options.type) {
+                    const recurrenceParams = trimNullKeys({
+                        endAfter: options.endAfter,
+                        interval: options.interval,
+                        type: options.type,
+                        // @ts-ignore no clue why not tho
+                        params: options.params,
+                    });
+                    // @ts-expect-error idk how to validate this one lmao
+                    recurrenceJSON = generateRecurrenceJSON(recurrenceParams);
+                }
+                const requestBody = {
+                    agenda: (_b = options.agenda) !== null && _b !== void 0 ? _b : null,
+                    duration: (_c = options.duration) !== null && _c !== void 0 ? _c : null,
+                    password: (_d = options.password) !== null && _d !== void 0 ? _d : null,
+                    recurrence: recurrenceJSON !== null && recurrenceJSON !== void 0 ? recurrenceJSON : null,
+                    start_time: (_f = (_e = options.start) === null || _e === void 0 ? void 0 : _e.toISOString()) !== null && _f !== void 0 ? _f : null,
+                    timezone: (_g = __classPrivateFieldGet(this, _ZoomClient_timezone, "f")) !== null && _g !== void 0 ? _g : null,
+                    topic: (_h = options.name) !== null && _h !== void 0 ? _h : null,
+                    settings: {
+                        meeting_authentication: false,
+                        host_video: true,
+                        panelists_video: true,
+                        hd_video: true,
+                        auto_recording: (_j = options.recording) !== null && _j !== void 0 ? _j : "none",
+                        approval_type: options.approval
+                            ? registrationTypeToNumber(options.approval)
+                            : null,
+                    },
+                };
+                try {
+                    const res = yield this._zoom.patch(`/webinars/${params.id}/${params.occurrence_id
+                        ? `?occurrence_id=${params.occurrence_id}`
+                        : null}`);
+                    switch (res.status) {
+                        case 204:
+                        case 200:
+                            resolve(res.data);
+                            break;
+                        case 300:
+                            throw new Error(`Invalid webinar ID or invalid recurrence settings. Zoom response: ${res.statusText}`);
+                        case 400:
+                            throw new Error(`Bad Request. Zoom response: ${res.statusText}`);
+                        case 404:
+                            throw new Error(`Webinar not found or expired. Zoom response: ${res.statusText}`);
+                    }
+                    resolve(res.data);
+                }
+                catch (error) {
+                    reject(error);
+                }
+            }));
+        });
+    }
 }
 exports.default = ZoomClient;
 _ZoomClient_token = new WeakMap(), _ZoomClient_timezone = new WeakMap(), _ZoomClient_user = new WeakMap();
 // HELPFUL FUNCTIONS
+const trimNullKeys = (object) => {
+    for (const key in object) {
+        if (Object.prototype.hasOwnProperty.call(object, key)) {
+            const element = object[key];
+            if (element === null) {
+                delete object[key];
+            }
+            else {
+                if (typeof element === "object") {
+                    trimNullKeys(object[key]);
+                }
+            }
+        }
+    }
+    return object;
+};
 const generateRecurrenceJSON = (options) => {
     const returnValue = { repeat_interval: options.interval, type: 1 };
     if (typeof options.endAfter === "number") {
@@ -244,14 +347,6 @@ function arrayOfWeekdaysToCSS(arr) {
         returnString = returnString.concat(`${weekdaysToCode(arr[i])} ${i != arr.length - 1 ? `,` : ``}`);
     }
     return returnString;
-}
-// note that this function rounds up. ie: an hour and a half becomes 2 hours.
-function minutesBetweenDates(a, b) {
-    const aInMs = a.getDate();
-    const bInMs = b.getDate();
-    const deltaMs = Math.abs(aInMs - bInMs);
-    const deltaMinutes = Math.ceil(deltaMs / 60000); // didn't know this notation works. neat
-    return deltaMinutes;
 }
 function registrationTypeToNumber(registrationType) {
     switch (registrationType) {

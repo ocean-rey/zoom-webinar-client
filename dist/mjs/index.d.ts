@@ -7,6 +7,8 @@ export default class ZoomClient {
     createRecurringWebinar({ ...options }: CreateRecurringWebinarParams): Promise<string>;
     registerToWebinar({ webinarID, firstName, lastName, email, }: RegisterToWebinarParams): Promise<string>;
     getWebinarAttendees(webinarID: string): Promise<Participation[]>;
+    deleteWebinar(webinarID: string): Promise<void>;
+    updateWebinar({ ...params }: UpdateWebinarParams): Promise<unknown>;
 }
 declare type Recording = "local" | "cloud" | "none";
 declare type Approval = "registration" | "registration+approval" | "none";
@@ -39,6 +41,11 @@ declare type RecurrenceOptions = WeeklyRecurrence | MonthlyRecurrence | DailyRec
 declare type CreateRecurringWebinarParams = CreateWebinarBaseParams & RecurrenceOptions & {
     endAfter: Date | number;
     interval: number;
+};
+declare type UpdateWebinarParams = {
+    id: string;
+    occurrence_id?: string;
+    options: Partial<CreateRecurringWebinarParams>;
 };
 declare type ZoomClientParams = {
     apiKey: string;

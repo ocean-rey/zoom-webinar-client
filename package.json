@@ -7,7 +7,11 @@
   "scripts": {
     "test": "jest --runInBand --detectOpenHandles",
     "compile": "rm -fr dist/* && tsc -p tsconfig.json && tsc -p tsconfig-cjs.json && ./fixup.sh",
-    "prepublish": "npm run compile"
+    "prepare:major": "./prepare.sh major",
+    "prepare:minor": "./prepare.sh minor",
+    "prepare:patch": "./prepare.sh patch",
+    "prepare:premajor":"./prepare.sh premajor",
+    "prepare:preminor":"./prepare.sh preminor"
   },
   "repository": {
     "type": "git",

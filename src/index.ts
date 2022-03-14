@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import axios, { AxiosInstance } from "axios";
+import axios, { AxiosInstance, AxiosResponse } from "axios";
 
 export default class ZoomClient {
   _zoom: AxiosInstance;
@@ -170,9 +170,118 @@ export default class ZoomClient {
       }
     });
   }
+
+  async deleteWebinar(webinarID: string): Promise<void> {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const res = await this._zoom.delete(`/webinars/${webinarID}`);
+        switch (res.status) {
+          case 204:
+          case 200:
+            resolve();
+            break;
+          case 300:
+            throw new Error(
+              `Invalid webinar ID. Zoom response: ${res.statusText}`
+            );
+          case 400:
+            throw new Error(`Bad Request. Zoom response: ${res.statusText}`);
+          case 404:
+            throw new Error(
+              `Webinar not found or expired. Zoom response: ${res.statusText}`
+            );
+        }
+        resolve();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
+  async updateWebinar({ ...params }: UpdateWebinarParams) {
+    return new Promise(async (resolve, reject) => {
+      const { options } = params;
+      // recurrence always requires a type
+      let recurrenceJSON;
+      if (options.type) {
+        const recurrenceParams = trimNullKeys({
+          endAfter: options.endAfter,
+          interval: options.interval,
+          type: options.type,
+          // @ts-ignore no clue why not tho
+          params: options.params,
+        });
+        // @ts-expect-error idk how to validate this one lmao
+        recurrenceJSON = generateRecurrenceJSON(recurrenceParams);
+      }
+      const requestBody = {
+        agenda: options.agenda ?? null,
+        duration: options.duration ?? null,
+        password: options.password ?? null,
+        recurrence: recurrenceJSON ?? null,
+        start_time: options.start?.toISOString() ?? null,
+        timezone: this.#timezone ?? null,
+        topic: options.name ?? null,
+        settings: {
+          meeting_authentication: false,
+          host_video: true,
+          panelists_video: true,
+          hd_video: true,
+          auto_recording: options.recording ?? "none",
+          approval_type: options.approval
+            ? registrationTypeToNumber(options.approval)
+            : null,
+        },
+      };
+      try {
+        const res = await this._zoom.patch(
+          `/webinars/${params.id}/${
+            params.occurrence_id
+              ? `?occurrence_id=${params.occurrence_id}`
+              : null
+          }`
+        );
+        switch (res.status) {
+          case 204:
+          case 200:
+            resolve(res.data);
+            break;
+          case 300:
+            throw new Error(
+              `Invalid webinar ID or invalid recurrence settings. Zoom response: ${res.statusText}`
+            );
+          case 400:
+            throw new Error(`Bad Request. Zoom response: ${res.statusText}`);
+          case 404:
+            throw new Error(
+              `Webinar not found or expired. Zoom response: ${res.statusText}`
+            );
+        }
+        resolve(res.data);
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
 }
 
 // HELPFUL FUNCTIONS
+
+const trimNullKeys = (object: { [any: string]: any }) => {
+  for (const key in object) {
+    if (Object.prototype.hasOwnProperty.call(object, key)) {
+      const element = object[key];
+      if (element === null) {
+        delete object[key];
+      } else {
+        if (typeof element === "object") {
+          trimNullKeys(object[key]);
+        }
+      }
+    }
+  }
+  return object;
+};
 
 const generateRecurrenceJSON = (
   options: WeeklyRecurrence | MonthlyRecurrence | DailyRecurrence
@@ -243,15 +352,6 @@ function arrayOfWeekdaysToCSS(arr: DayOfWeek[]) {
     );
   }
   return returnString;
-}
-
-// note that this function rounds up. ie: an hour and a half becomes 2 hours.
-function minutesBetweenDates(a: Date, b: Date) {
-  const aInMs = a.getDate();
-  const bInMs = b.getDate();
-  const deltaMs = Math.abs(aInMs - bInMs);
-  const deltaMinutes = Math.ceil(deltaMs / 60000); // didn't know this notation works. neat
-  return deltaMinutes;
 }
 
 function registrationTypeToNumber(registrationType?: Approval) {
@@ -361,6 +461,12 @@ type CreateRecurringWebinarParams = CreateWebinarBaseParams &
     endAfter: Date | number;
     interval: number;
   };
+
+type UpdateWebinarParams = {
+  id: string;
+  occurrence_id?: string;
+  options: Partial<CreateRecurringWebinarParams>;
+};
 
 type ZoomClientParams = {
   apiKey: string;

@@ -1,6 +1,5 @@
 echo $1
 if [ -z "$(git status --porcelain)" ]; then
-    npm run test &&
     npm run compile &&
     git add dist &&
     git commit -m "updated binaries" &&

@@ -5,7 +5,6 @@
   "module": "./dist/esm/index.js",
   "main": "./dist/cjs/index.js",
   "scripts": {
-    "test": "jest --runInBand --detectOpenHandles",
     "compile": "rm -fr dist/* && tsc -p tsconfig.json && tsc -p tsconfig-cjs.json && ./fixup.sh",
     "prepare:major": "./prepare.sh major",
     "prepare:minor": "./prepare.sh minor",

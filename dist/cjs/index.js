@@ -53,18 +53,20 @@ class ZoomClient {
             headers: { Authorization: `Bearer ${__classPrivateFieldGet(this, _ZoomClient_token, "f")}` },
         });
     }
-    createSingleWebinar({ start, duration, name, agenda, account, password, approval, recording, }) {
+    createSingleWebinar(_a) {
+        var params = __rest(_a, []);
         return __awaiter(this, void 0, void 0, function* () {
-            if (!(start && duration && name)) {
+            if (!(params.start && params.duration && params.name)) {
                 throw new Error("start, duration, and name are required parameters!");
             }
             return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
-                const startTime = start.toISOString();
-                const registrationCode = approval
-                    ? registrationTypeToNumber(approval)
+                var _b, _c;
+                const startTime = params.start.toISOString();
+                const registrationCode = params.approval
+                    ? registrationTypeToNumber(params.approval)
                     : 0;
                 const requestBody = {
-                    topic: name,
+                    topic: params.name,
                     type: 5,
                     start_time: startTime,
                     timezone: __classPrivateFieldGet(this, _ZoomClient_timezone, "f"),
@@ -73,15 +75,18 @@ class ZoomClient {
                         panelists_video: true,
                         hd_video: true,
                         approval_type: registrationCode,
-                        auto_recording: recording !== null && recording !== void 0 ? recording : "none",
+                        auto_recording: (_b = params.recording) !== null && _b !== void 0 ? _b : "none",
                         meeting_authentication: false,
+                        alternative_hosts: params.alterantiveHosts
+                            ? params.alterantiveHosts.join()
+                            : "",
                     },
-                    password,
-                    duration,
-                    agenda: agenda !== null && agenda !== void 0 ? agenda : "",
+                    password: params.password,
+                    duration: params.duration,
+                    agenda: (_c = params.agenda) !== null && _c !== void 0 ? _c : "",
                 };
-                const requestURL = account
-                    ? `users/${account}/webinars`
+                const requestURL = params.account
+                    ? `users/${params.account}/webinars`
                     : `users/${__classPrivateFieldGet(this, _ZoomClient_user, "f")}/webinars`;
                 try {
                     const response = yield this._zoom.post(requestURL, requestBody);
@@ -247,6 +252,9 @@ class ZoomClient {
                         approval_type: options.approval
                             ? registrationTypeToNumber(options.approval)
                             : null,
+                        alternative_hosts: options.alterantiveHosts
+                            ? options.alterantiveHosts.join()
+                            : "",
                     },
                 };
                 try {

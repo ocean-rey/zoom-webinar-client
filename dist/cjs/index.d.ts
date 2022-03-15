@@ -3,7 +3,7 @@ export default class ZoomClient {
     #private;
     _zoom: AxiosInstance;
     constructor({ apiKey, secretKey, timezone, user }: ZoomClientParams);
-    createSingleWebinar({ start, duration, name, agenda, account, password, approval, recording, }: CreateWebinarBaseParams): Promise<string>;
+    createSingleWebinar({ ...params }: CreateWebinarBaseParams): Promise<string>;
     createRecurringWebinar({ ...options }: CreateRecurringWebinarParams): Promise<string>;
     registerToWebinar({ webinarID, firstName, lastName, email, }: RegisterToWebinarParams): Promise<string>;
     getWebinarAttendees(webinarID: string): Promise<Participation[]>;
@@ -62,6 +62,7 @@ declare type CreateWebinarBaseParams = {
     approval?: Approval;
     recording?: Recording;
     duration: number;
+    alterantiveHosts?: string[];
 };
 declare type RegisterToWebinarParams = {
     webinarID: string;

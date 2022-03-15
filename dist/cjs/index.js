@@ -85,7 +85,7 @@ class ZoomClient {
                     : `users/${__classPrivateFieldGet(this, _ZoomClient_user, "f")}/webinars`;
                 try {
                     const response = yield this._zoom.post(requestURL, requestBody);
-                    const webinarID = response.data.id;
+                    const webinarID = `${response.data.id}`;
                     resolve(webinarID);
                 }
                 catch (error) {
@@ -138,7 +138,7 @@ class ZoomClient {
                     : `users/${__classPrivateFieldGet(this, _ZoomClient_user, "f")}/webinars`;
                 try {
                     const response = yield this._zoom.post(requestURL, requestBody);
-                    const webinarID = response.data.id;
+                    const webinarID = `${response.data.id}`;
                     resolve(webinarID);
                 }
                 catch (error) {

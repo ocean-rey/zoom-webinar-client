@@ -23,25 +23,18 @@ export default class ZoomClient {
   }
 
   async createSingleWebinar({
-    start,
-    duration,
-    name,
-    agenda,
-    account,
-    password,
-    approval,
-    recording,
+    ...params
   }: CreateWebinarBaseParams): Promise<string> {
-    if (!(start && duration && name)) {
+    if (!(params.start && params.duration && params.name)) {
       throw new Error("start, duration, and name are required parameters!");
     }
     return new Promise<string>(async (resolve, reject) => {
-      const startTime = start.toISOString();
-      const registrationCode = approval
-        ? registrationTypeToNumber(approval)
+      const startTime = params.start.toISOString();
+      const registrationCode = params.approval
+        ? registrationTypeToNumber(params.approval)
         : 0;
       const requestBody = {
-        topic: name,
+        topic: params.name,
         type: 5,
         start_time: startTime,
         timezone: this.#timezone,
@@ -50,15 +43,18 @@ export default class ZoomClient {
           panelists_video: true,
           hd_video: true,
           approval_type: registrationCode,
-          auto_recording: recording ?? "none",
+          auto_recording: params.recording ?? "none",
           meeting_authentication: false,
+          alternative_hosts: params.alterantiveHosts
+            ? params.alterantiveHosts.join()
+            : "",
         },
-        password,
-        duration,
-        agenda: agenda ?? "",
+        password: params.password,
+        duration: params.duration,
+        agenda: params.agenda ?? "",
       };
-      const requestURL = account
-        ? `users/${account}/webinars`
+      const requestURL = params.account
+        ? `users/${params.account}/webinars`
         : `users/${this.#user}/webinars`;
       try {
         const response = await this._zoom.post(requestURL, requestBody);

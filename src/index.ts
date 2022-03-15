@@ -62,7 +62,7 @@ export default class ZoomClient {
         : `users/${this.#user}/webinars`;
       try {
         const response = await this._zoom.post(requestURL, requestBody);
-        const webinarID = response.data.id;
+        const webinarID = `${response.data.id}`;
         resolve(webinarID);
       } catch (error) {
         reject(error);
@@ -115,7 +115,7 @@ export default class ZoomClient {
         : `users/${this.#user}/webinars`;
       try {
         const response = await this._zoom.post(requestURL, requestBody);
-        const webinarID = response.data.id;
+        const webinarID = `${response.data.id}`;
         resolve(webinarID);
       } catch (error) {
         reject(error);

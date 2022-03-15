@@ -231,6 +231,9 @@ export default class ZoomClient {
           approval_type: options.approval
             ? registrationTypeToNumber(options.approval)
             : null,
+          alternative_hosts: options.alterantiveHosts
+            ? options.alterantiveHosts.join()
+            : "",
         },
       };
       try {
@@ -484,6 +487,7 @@ type CreateWebinarBaseParams = {
   approval?: Approval;
   recording?: Recording;
   duration: number;
+  alterantiveHosts?: string[];
 };
 
 type RegisterToWebinarParams = {

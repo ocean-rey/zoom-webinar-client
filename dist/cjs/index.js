@@ -61,7 +61,7 @@ class ZoomClient {
             }
             return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
                 var _b, _c;
-                const startTime = params.start.toISOString();
+                const startTime = new Date(params.start).toISOString();
                 const registrationCode = params.approval
                     ? registrationTypeToNumber(params.approval)
                     : 0;
@@ -104,7 +104,7 @@ class ZoomClient {
         return __awaiter(this, void 0, void 0, function* () {
             return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
                 var _b, _c, _d;
-                const startTime = options.start.toISOString();
+                const startTime = new Date(options.start).toISOString();
                 const registrationCode = options.approval
                     ? registrationTypeToNumber(options.approval)
                     : 0;
@@ -220,7 +220,7 @@ class ZoomClient {
         var params = __rest(_a, []);
         return __awaiter(this, void 0, void 0, function* () {
             return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
-                var _b, _c, _d, _e, _f, _g, _h, _j;
+                var _b, _c, _d, _e, _f, _g;
                 const { options } = params;
                 // recurrence always requires a type
                 let recurrenceJSON;
@@ -240,15 +240,17 @@ class ZoomClient {
                     duration: (_c = options.duration) !== null && _c !== void 0 ? _c : null,
                     password: (_d = options.password) !== null && _d !== void 0 ? _d : null,
                     recurrence: recurrenceJSON !== null && recurrenceJSON !== void 0 ? recurrenceJSON : null,
-                    start_time: (_f = (_e = options.start) === null || _e === void 0 ? void 0 : _e.toISOString()) !== null && _f !== void 0 ? _f : null,
-                    timezone: (_g = __classPrivateFieldGet(this, _ZoomClient_timezone, "f")) !== null && _g !== void 0 ? _g : null,
-                    topic: (_h = options.name) !== null && _h !== void 0 ? _h : null,
+                    start_time: options.start
+                        ? new Date(options.start).toISOString()
+                        : null,
+                    timezone: (_e = __classPrivateFieldGet(this, _ZoomClient_timezone, "f")) !== null && _e !== void 0 ? _e : null,
+                    topic: (_f = options.name) !== null && _f !== void 0 ? _f : null,
                     settings: {
                         meeting_authentication: false,
                         host_video: true,
                         panelists_video: true,
                         hd_video: true,
-                        auto_recording: (_j = options.recording) !== null && _j !== void 0 ? _j : "none",
+                        auto_recording: (_g = options.recording) !== null && _g !== void 0 ? _g : "none",
                         approval_type: options.approval
                             ? registrationTypeToNumber(options.approval)
                             : null,
@@ -260,7 +262,7 @@ class ZoomClient {
                 try {
                     const res = yield this._zoom.patch(`/webinars/${params.id}/${params.occurrence_id
                         ? `?occurrence_id=${params.occurrence_id}`
-                        : null}`);
+                        : null}`, trimNullKeys(requestBody));
                     switch (res.status) {
                         case 204:
                         case 200:

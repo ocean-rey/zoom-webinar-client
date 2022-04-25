@@ -4,6 +4,8 @@ import axios, { AxiosInstance, AxiosResponse } from "axios";
 export default class ZoomClient {
   _zoom: AxiosInstance;
   #token: string;
+  #apiKey: string;
+  #secretKey: string;
   #timezone: string;
   #user: string;
   constructor({ apiKey, secretKey, timezone, user }: ZoomClientParams) {
@@ -16,10 +18,22 @@ export default class ZoomClient {
       },
       secretKey
     ); // initialize the jwt
+    this.#apiKey = apiKey;
+    this.#secretKey = secretKey;
     this._zoom = axios.create({
       baseURL: "https://api.zoom.us/v2",
       headers: { Authorization: `Bearer ${this.#token}` },
     });
+  }
+
+  refreshToken() {
+    this.#token = jwt.sign(
+      {
+        iss: this.#apiKey,
+        exp: Math.floor(Date.now() / 1000) + 10000, // this can probably be simplified lol
+      },
+      this.#secretKey
+    );
   }
 
   async createSingleWebinar({
@@ -61,7 +75,14 @@ export default class ZoomClient {
         const webinarID = `${response.data.id}`;
         resolve(webinarID);
       } catch (error) {
-        reject(error);
+        this.refreshToken()
+        try {
+          const response = await this._zoom.post(requestURL, requestBody);
+          const webinarID = response.data.id;
+          resolve(webinarID);
+        } catch (error) {
+          reject(error)
+        }
       }
     });
   }
@@ -93,17 +114,17 @@ export default class ZoomClient {
         recurrence:
           options.type === "daily"
             ? generateRecurrenceJSON({
-                type: options.type,
-                interval: options.interval,
-                endAfter: options.endAfter,
-              })
+              type: options.type,
+              interval: options.interval,
+              endAfter: options.endAfter,
+            })
             : generateRecurrenceJSON({
-                type: options.type,
-                interval: options.interval,
-                endAfter: options.endAfter,
-                //@ts-expect-error because if type is week then monthly params are not assignable and vice versa
-                params: options.params,
-              }),
+              type: options.type,
+              interval: options.interval,
+              endAfter: options.endAfter,
+              //@ts-expect-error because if type is week then monthly params are not assignable and vice versa
+              params: options.params,
+            }),
       };
 
       const requestURL = options.account
@@ -114,7 +135,14 @@ export default class ZoomClient {
         const webinarID = `${response.data.id}`;
         resolve(webinarID);
       } catch (error) {
-        reject(error);
+        try {
+          this.refreshToken()
+          const response = await this._zoom.post(requestURL, requestBody);
+          const webinarID = response.data.id;
+          resolve(webinarID);
+        } catch (error) {
+          reject(error);
+        }
       }
     });
   }
@@ -139,7 +167,17 @@ export default class ZoomClient {
         const joinURL = resposne.data.join_url;
         resolve(joinURL);
       } catch (error) {
-        reject(error);
+        try {
+          this.refreshToken()
+          const resposne = await this._zoom.post(
+            `/webinars/${webinarID}/registrants`,
+            requestBody
+          );
+          const joinURL = resposne.data.join_url;
+          resolve(joinURL);
+        } catch (error) {
+          reject(error);
+        }
       }
     });
   }
@@ -162,7 +200,25 @@ export default class ZoomClient {
         }
         resolve(userList);
       } catch (error) {
-        reject(error);
+        try {
+          this.refreshToken()
+          const instancesResponse = await this._zoom.get(
+            `/past_webinars/${webinarID}/instances`
+          ); // because if its recurring we need to get attendance for every instances.
+          const instances = instancesResponse.data.webinars.map(
+            (x: { uuid: any }) => encodeURIComponent(encodeURIComponent(x.uuid)) // https://marketplace.zoom.us/docs/api-reference/zoom-api/methods/#operation/reportWebinarParticipants yes its this dumb
+          );
+          var userList: Participation[] = []; // this is what we will eventually resolve
+          for (let i = 0; i < instances.length; i++) {
+            // iterate through instances
+            userList = userList.concat(
+              await paginationWebinarParticipants(this._zoom, instances[i])
+            );
+          }
+          resolve(userList);
+        } catch (error) {
+          reject(error);
+        }
       }
     });
   }

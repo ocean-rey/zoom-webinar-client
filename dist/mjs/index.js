@@ -3,6 +3,8 @@ import axios from "axios";
 export default class ZoomClient {
     _zoom;
     #token;
+    #apiKey;
+    #secretKey;
     #timezone;
     #user;
     constructor({ apiKey, secretKey, timezone, user }) {
@@ -12,10 +14,18 @@ export default class ZoomClient {
             iss: apiKey,
             exp: Math.floor(Date.now() / 1000) + 10000, // this can probably be simplified lol
         }, secretKey); // initialize the jwt
+        this.#apiKey = apiKey;
+        this.#secretKey = secretKey;
         this._zoom = axios.create({
             baseURL: "https://api.zoom.us/v2",
             headers: { Authorization: `Bearer ${this.#token}` },
         });
+    }
+    refreshToken() {
+        this.#token = jwt.sign({
+            iss: this.#apiKey,
+            exp: Math.floor(Date.now() / 1000) + 10000, // this can probably be simplified lol
+        }, this.#secretKey);
     }
     async createSingleWebinar({ ...params }) {
         if (!(params.start && params.duration && params.name)) {
@@ -55,7 +65,15 @@ export default class ZoomClient {
                 resolve(webinarID);
             }
             catch (error) {
-                reject(error);
+                this.refreshToken();
+                try {
+                    const response = await this._zoom.post(requestURL, requestBody);
+                    const webinarID = response.data.id;
+                    resolve(webinarID);
+                }
+                catch (error) {
+                    reject(error);
+                }
             }
         });
     }
@@ -104,7 +122,15 @@ export default class ZoomClient {
                 resolve(webinarID);
             }
             catch (error) {
-                reject(error);
+                try {
+                    this.refreshToken();
+                    const response = await this._zoom.post(requestURL, requestBody);
+                    const webinarID = response.data.id;
+                    resolve(webinarID);
+                }
+                catch (error) {
+                    reject(error);
+                }
             }
         });
     }
@@ -121,7 +147,15 @@ export default class ZoomClient {
                 resolve(joinURL);
             }
             catch (error) {
-                reject(error);
+                try {
+                    this.refreshToken();
+                    const resposne = await this._zoom.post(`/webinars/${webinarID}/registrants`, requestBody);
+                    const joinURL = resposne.data.join_url;
+                    resolve(joinURL);
+                }
+                catch (error) {
+                    reject(error);
+                }
             }
         });
     }
@@ -139,7 +173,21 @@ export default class ZoomClient {
                 resolve(userList);
             }
             catch (error) {
-                reject(error);
+                try {
+                    this.refreshToken();
+                    const instancesResponse = await this._zoom.get(`/past_webinars/${webinarID}/instances`); // because if its recurring we need to get attendance for every instances.
+                    const instances = instancesResponse.data.webinars.map((x) => encodeURIComponent(encodeURIComponent(x.uuid)) // https://marketplace.zoom.us/docs/api-reference/zoom-api/methods/#operation/reportWebinarParticipants yes its this dumb
+                    );
+                    var userList = []; // this is what we will eventually resolve
+                    for (let i = 0; i < instances.length; i++) {
+                        // iterate through instances
+                        userList = userList.concat(await paginationWebinarParticipants(this._zoom, instances[i]));
+                    }
+                    resolve(userList);
+                }
+                catch (error) {
+                    reject(error);
+                }
             }
         });
     }

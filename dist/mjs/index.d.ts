@@ -3,6 +3,7 @@ export default class ZoomClient {
     #private;
     _zoom: AxiosInstance;
     constructor({ apiKey, secretKey, timezone, user }: ZoomClientParams);
+    refreshToken(): void;
     createSingleWebinar({ ...params }: CreateWebinarBaseParams): Promise<string>;
     createRecurringWebinar({ ...options }: CreateRecurringWebinarParams): Promise<string>;
     registerToWebinar({ webinarID, firstName, lastName, email, }: RegisterToWebinarParams): Promise<string>;

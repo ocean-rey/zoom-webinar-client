@@ -33,13 +33,15 @@ var __rest = (this && this.__rest) || function (s, e) {
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
-var _ZoomClient_token, _ZoomClient_timezone, _ZoomClient_user;
+var _ZoomClient_token, _ZoomClient_apiKey, _ZoomClient_secretKey, _ZoomClient_timezone, _ZoomClient_user;
 Object.defineProperty(exports, "__esModule", { value: true });
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const axios_1 = __importDefault(require("axios"));
 class ZoomClient {
     constructor({ apiKey, secretKey, timezone, user }) {
         _ZoomClient_token.set(this, void 0);
+        _ZoomClient_apiKey.set(this, void 0);
+        _ZoomClient_secretKey.set(this, void 0);
         _ZoomClient_timezone.set(this, void 0);
         _ZoomClient_user.set(this, void 0);
         __classPrivateFieldSet(this, _ZoomClient_timezone, timezone !== null && timezone !== void 0 ? timezone : "Asia/Riyadh", "f");
@@ -48,10 +50,18 @@ class ZoomClient {
             iss: apiKey,
             exp: Math.floor(Date.now() / 1000) + 10000, // this can probably be simplified lol
         }, secretKey), "f"); // initialize the jwt
+        __classPrivateFieldSet(this, _ZoomClient_apiKey, apiKey, "f");
+        __classPrivateFieldSet(this, _ZoomClient_secretKey, secretKey, "f");
         this._zoom = axios_1.default.create({
             baseURL: "https://api.zoom.us/v2",
             headers: { Authorization: `Bearer ${__classPrivateFieldGet(this, _ZoomClient_token, "f")}` },
         });
+    }
+    refreshToken() {
+        __classPrivateFieldSet(this, _ZoomClient_token, jsonwebtoken_1.default.sign({
+            iss: __classPrivateFieldGet(this, _ZoomClient_apiKey, "f"),
+            exp: Math.floor(Date.now() / 1000) + 10000, // this can probably be simplified lol
+        }, __classPrivateFieldGet(this, _ZoomClient_secretKey, "f")), "f");
     }
     createSingleWebinar(_a) {
         var params = __rest(_a, []);
@@ -94,7 +104,15 @@ class ZoomClient {
                     resolve(webinarID);
                 }
                 catch (error) {
-                    reject(error);
+                    this.refreshToken();
+                    try {
+                        const response = yield this._zoom.post(requestURL, requestBody);
+                        const webinarID = response.data.id;
+                        resolve(webinarID);
+                    }
+                    catch (error) {
+                        reject(error);
+                    }
                 }
             }));
         });
@@ -147,7 +165,15 @@ class ZoomClient {
                     resolve(webinarID);
                 }
                 catch (error) {
-                    reject(error);
+                    try {
+                        this.refreshToken();
+                        const response = yield this._zoom.post(requestURL, requestBody);
+                        const webinarID = response.data.id;
+                        resolve(webinarID);
+                    }
+                    catch (error) {
+                        reject(error);
+                    }
                 }
             }));
         });
@@ -166,7 +192,15 @@ class ZoomClient {
                     resolve(joinURL);
                 }
                 catch (error) {
-                    reject(error);
+                    try {
+                        this.refreshToken();
+                        const resposne = yield this._zoom.post(`/webinars/${webinarID}/registrants`, requestBody);
+                        const joinURL = resposne.data.join_url;
+                        resolve(joinURL);
+                    }
+                    catch (error) {
+                        reject(error);
+                    }
                 }
             }));
         });
@@ -186,7 +220,21 @@ class ZoomClient {
                     resolve(userList);
                 }
                 catch (error) {
-                    reject(error);
+                    try {
+                        this.refreshToken();
+                        const instancesResponse = yield this._zoom.get(`/past_webinars/${webinarID}/instances`); // because if its recurring we need to get attendance for every instances.
+                        const instances = instancesResponse.data.webinars.map((x) => encodeURIComponent(encodeURIComponent(x.uuid)) // https://marketplace.zoom.us/docs/api-reference/zoom-api/methods/#operation/reportWebinarParticipants yes its this dumb
+                        );
+                        var userList = []; // this is what we will eventually resolve
+                        for (let i = 0; i < instances.length; i++) {
+                            // iterate through instances
+                            userList = userList.concat(yield paginationWebinarParticipants(this._zoom, instances[i]));
+                        }
+                        resolve(userList);
+                    }
+                    catch (error) {
+                        reject(error);
+                    }
                 }
             }));
         });
@@ -285,7 +333,7 @@ class ZoomClient {
     }
 }
 exports.default = ZoomClient;
-_ZoomClient_token = new WeakMap(), _ZoomClient_timezone = new WeakMap(), _ZoomClient_user = new WeakMap();
+_ZoomClient_token = new WeakMap(), _ZoomClient_apiKey = new WeakMap(), _ZoomClient_secretKey = new WeakMap(), _ZoomClient_timezone = new WeakMap(), _ZoomClient_user = new WeakMap();
 // HELPFUL FUNCTIONS
 const trimNullKeys = (object) => {
     for (const key in object) {

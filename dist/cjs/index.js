@@ -69,10 +69,9 @@ class ZoomClient {
             if (!(params.start && params.duration && params.name)) {
                 throw new Error("start, duration, and name are required parameters!");
             }
+            const startTime = new Date(params.start).toUTCString();
             return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
                 var _b, _c;
-                const formatter = new Intl.DateTimeFormat('en-US', { timeZone: __classPrivateFieldGet(this, _ZoomClient_timezone, "f") });
-                const startTime = formatter.format(new Date(params.start));
                 const registrationCode = params.approval
                     ? registrationTypeToNumber(params.approval)
                     : 0;
@@ -123,8 +122,7 @@ class ZoomClient {
         return __awaiter(this, void 0, void 0, function* () {
             return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
                 var _b, _c, _d;
-                const formatter = new Intl.DateTimeFormat('en-US', { timeZone: __classPrivateFieldGet(this, _ZoomClient_timezone, "f") });
-                const startTime = formatter.format(new Date(options.start));
+                const startTime = new Date(options.start);
                 const registrationCode = options.approval
                     ? registrationTypeToNumber(options.approval)
                     : 0;
@@ -285,14 +283,13 @@ class ZoomClient {
                     // @ts-expect-error idk how to validate this one lmao
                     recurrenceJSON = generateRecurrenceJSON(recurrenceParams);
                 }
-                const formatter = new Intl.DateTimeFormat('en-US', { timeZone: __classPrivateFieldGet(this, _ZoomClient_timezone, "f") });
                 const requestBody = {
                     agenda: (_b = options.agenda) !== null && _b !== void 0 ? _b : null,
                     duration: (_c = options.duration) !== null && _c !== void 0 ? _c : null,
                     password: (_d = options.password) !== null && _d !== void 0 ? _d : null,
                     recurrence: recurrenceJSON !== null && recurrenceJSON !== void 0 ? recurrenceJSON : null,
                     start_time: options.start
-                        ? formatter.format(new Date(options.start))
+                        ? new Date(options.start).toISOString()
                         : null,
                     timezone: (_e = __classPrivateFieldGet(this, _ZoomClient_timezone, "f")) !== null && _e !== void 0 ? _e : null,
                     topic: (_f = options.name) !== null && _f !== void 0 ? _f : null,

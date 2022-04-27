@@ -32,7 +32,8 @@ export default class ZoomClient {
             throw new Error("start, duration, and name are required parameters!");
         }
         return new Promise(async (resolve, reject) => {
-            const startTime = new Date(params.start).toISOString();
+            const formatter = new Intl.DateTimeFormat('en-US', { timeZone: this.#timezone });
+            const startTime = formatter.format(new Date(params.start));
             const registrationCode = params.approval
                 ? registrationTypeToNumber(params.approval)
                 : 0;
@@ -79,7 +80,8 @@ export default class ZoomClient {
     }
     async createRecurringWebinar({ ...options }) {
         return new Promise(async (resolve, reject) => {
-            const startTime = new Date(options.start).toISOString();
+            const formatter = new Intl.DateTimeFormat('en-US', { timeZone: this.#timezone });
+            const startTime = formatter.format(new Date(options.start));
             const registrationCode = options.approval
                 ? registrationTypeToNumber(options.approval)
                 : 0;
@@ -230,13 +232,14 @@ export default class ZoomClient {
                 // @ts-expect-error idk how to validate this one lmao
                 recurrenceJSON = generateRecurrenceJSON(recurrenceParams);
             }
+            const formatter = new Intl.DateTimeFormat('en-US', { timeZone: this.#timezone });
             const requestBody = {
                 agenda: options.agenda ?? null,
                 duration: options.duration ?? null,
                 password: options.password ?? null,
                 recurrence: recurrenceJSON ?? null,
                 start_time: options.start
-                    ? new Date(options.start).toISOString()
+                    ? formatter.format(new Date(options.start))
                     : null,
                 timezone: this.#timezone ?? null,
                 topic: options.name ?? null,

@@ -33,7 +33,7 @@ var __rest = (this && this.__rest) || function (s, e) {
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
-var _ZoomClient_token, _ZoomClient_timezone, _ZoomClient_user;
+var _ZoomClient_token, _ZoomClient_timezone, _ZoomClient_user, _ZoomClient_apiKey, _ZoomClient_secretKey;
 Object.defineProperty(exports, "__esModule", { value: true });
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const axios_1 = __importDefault(require("axios"));
@@ -42,15 +42,31 @@ class ZoomClient {
         _ZoomClient_token.set(this, void 0);
         _ZoomClient_timezone.set(this, void 0);
         _ZoomClient_user.set(this, void 0);
+        _ZoomClient_apiKey.set(this, void 0);
+        _ZoomClient_secretKey.set(this, void 0);
         __classPrivateFieldSet(this, _ZoomClient_timezone, timezone !== null && timezone !== void 0 ? timezone : "Asia/Riyadh", "f");
         __classPrivateFieldSet(this, _ZoomClient_user, user, "f");
         __classPrivateFieldSet(this, _ZoomClient_token, jsonwebtoken_1.default.sign({
             iss: apiKey,
             exp: Math.floor(Date.now() / 1000) + 10000, // this can probably be simplified lol
         }, secretKey), "f"); // initialize the jwt
+        __classPrivateFieldSet(this, _ZoomClient_apiKey, apiKey, "f");
+        __classPrivateFieldSet(this, _ZoomClient_secretKey, secretKey, "f");
         this._zoom = axios_1.default.create({
             baseURL: "https://api.zoom.us/v2",
             headers: { Authorization: `Bearer ${__classPrivateFieldGet(this, _ZoomClient_token, "f")}` },
+        });
+    }
+    refreshToken() {
+        return __awaiter(this, void 0, void 0, function* () {
+            __classPrivateFieldSet(this, _ZoomClient_token, jsonwebtoken_1.default.sign({
+                iss: __classPrivateFieldGet(this, _ZoomClient_apiKey, "f"),
+                exp: Math.floor(Date.now() / 1000) + 10000,
+            }, __classPrivateFieldGet(this, _ZoomClient_secretKey, "f")), "f");
+            this._zoom = axios_1.default.create({
+                baseURL: "https://api.zoom.us/v2",
+                headers: { Authorization: `Bearer ${__classPrivateFieldGet(this, _ZoomClient_token, "f")}` },
+            });
         });
     }
     createSingleWebinar(_a) {
@@ -58,6 +74,9 @@ class ZoomClient {
         return __awaiter(this, void 0, void 0, function* () {
             if (!(params.start && params.duration && params.name)) {
                 throw new Error("start, duration, and name are required parameters!");
+            }
+            if (!jsonwebtoken_1.default.verify(__classPrivateFieldGet(this, _ZoomClient_token, "f"), __classPrivateFieldGet(this, _ZoomClient_secretKey, "f"))) {
+                this.refreshToken();
             }
             return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
                 var _b, _c;
@@ -102,6 +121,9 @@ class ZoomClient {
     createRecurringWebinar(_a) {
         var options = __rest(_a, []);
         return __awaiter(this, void 0, void 0, function* () {
+            if (!jsonwebtoken_1.default.verify(__classPrivateFieldGet(this, _ZoomClient_token, "f"), __classPrivateFieldGet(this, _ZoomClient_secretKey, "f"))) {
+                this.refreshToken();
+            }
             return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
                 var _b, _c, _d;
                 const startTime = new Date(options.start).toISOString();
@@ -154,6 +176,9 @@ class ZoomClient {
     }
     registerToWebinar({ webinarID, firstName, lastName, email, }) {
         return __awaiter(this, void 0, void 0, function* () {
+            if (!jsonwebtoken_1.default.verify(__classPrivateFieldGet(this, _ZoomClient_token, "f"), __classPrivateFieldGet(this, _ZoomClient_secretKey, "f"))) {
+                this.refreshToken();
+            }
             return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
                 const requestBody = {
                     first_name: firstName,
@@ -173,6 +198,9 @@ class ZoomClient {
     }
     getWebinarAttendees(webinarID) {
         return __awaiter(this, void 0, void 0, function* () {
+            if (!jsonwebtoken_1.default.verify(__classPrivateFieldGet(this, _ZoomClient_token, "f"), __classPrivateFieldGet(this, _ZoomClient_secretKey, "f"))) {
+                this.refreshToken();
+            }
             return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
                 try {
                     const instancesResponse = yield this._zoom.get(`/past_webinars/${webinarID}/instances`); // because if its recurring we need to get attendance for every instances.
@@ -193,6 +221,9 @@ class ZoomClient {
     }
     deleteWebinar(webinarID) {
         return __awaiter(this, void 0, void 0, function* () {
+            if (!jsonwebtoken_1.default.verify(__classPrivateFieldGet(this, _ZoomClient_token, "f"), __classPrivateFieldGet(this, _ZoomClient_secretKey, "f"))) {
+                this.refreshToken();
+            }
             return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
                 try {
                     const res = yield this._zoom.delete(`/webinars/${webinarID}`);
@@ -219,6 +250,9 @@ class ZoomClient {
     updateWebinar(_a) {
         var params = __rest(_a, []);
         return __awaiter(this, void 0, void 0, function* () {
+            if (!jsonwebtoken_1.default.verify(__classPrivateFieldGet(this, _ZoomClient_token, "f"), __classPrivateFieldGet(this, _ZoomClient_secretKey, "f"))) {
+                this.refreshToken();
+            }
             return new Promise((resolve, reject) => __awaiter(this, void 0, void 0, function* () {
                 var _b, _c, _d, _e, _f, _g;
                 const { options } = params;
@@ -285,7 +319,7 @@ class ZoomClient {
     }
 }
 exports.default = ZoomClient;
-_ZoomClient_token = new WeakMap(), _ZoomClient_timezone = new WeakMap(), _ZoomClient_user = new WeakMap();
+_ZoomClient_token = new WeakMap(), _ZoomClient_timezone = new WeakMap(), _ZoomClient_user = new WeakMap(), _ZoomClient_apiKey = new WeakMap(), _ZoomClient_secretKey = new WeakMap();
 // HELPFUL FUNCTIONS
 const trimNullKeys = (object) => {
     for (const key in object) {

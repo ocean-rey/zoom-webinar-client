@@ -6,6 +6,8 @@ export default class ZoomClient {
   #token: string;
   #timezone: string;
   #user: string;
+  #apiKey: string;
+  #secretKey: string;
   constructor({ apiKey, secretKey, timezone, user }: ZoomClientParams) {
     this.#timezone = timezone ?? "Asia/Riyadh";
     this.#user = user;
@@ -16,6 +18,22 @@ export default class ZoomClient {
       },
       secretKey
     ); // initialize the jwt
+    this.#apiKey = apiKey;
+    this.#secretKey = secretKey;
+    this._zoom = axios.create({
+      baseURL: "https://api.zoom.us/v2",
+      headers: { Authorization: `Bearer ${this.#token}` },
+    });
+  }
+
+  async refreshToken() {
+    this.#token = jwt.sign(
+      {
+        iss: this.#apiKey,
+        exp: Math.floor(Date.now() / 1000) + 10000,
+      },
+      this.#secretKey
+    );
     this._zoom = axios.create({
       baseURL: "https://api.zoom.us/v2",
       headers: { Authorization: `Bearer ${this.#token}` },
@@ -27,6 +45,9 @@ export default class ZoomClient {
   }: CreateWebinarBaseParams): Promise<string> {
     if (!(params.start && params.duration && params.name)) {
       throw new Error("start, duration, and name are required parameters!");
+    }
+    if (!jwt.verify(this.#token, this.#secretKey)) {
+      this.refreshToken();
     }
     return new Promise<string>(async (resolve, reject) => {
       const startTime = new Date(params.start).toISOString();
@@ -69,6 +90,10 @@ export default class ZoomClient {
   async createRecurringWebinar({
     ...options
   }: CreateRecurringWebinarParams): Promise<string> {
+
+    if (!jwt.verify(this.#token, this.#secretKey)) {
+      this.refreshToken();
+    }
     return new Promise<string>(async (resolve, reject) => {
       const startTime = new Date(options.start).toISOString();
       const registrationCode = options.approval
@@ -125,6 +150,10 @@ export default class ZoomClient {
     lastName,
     email,
   }: RegisterToWebinarParams): Promise<string> {
+
+    if (!jwt.verify(this.#token, this.#secretKey)) {
+      this.refreshToken();
+    }
     return new Promise(async (resolve, reject) => {
       const requestBody = {
         first_name: firstName,
@@ -145,6 +174,10 @@ export default class ZoomClient {
   }
 
   async getWebinarAttendees(webinarID: string): Promise<Participation[]> {
+
+    if (!jwt.verify(this.#token, this.#secretKey)) {
+      this.refreshToken();
+    }
     return new Promise(async (resolve, reject) => {
       try {
         const instancesResponse = await this._zoom.get(
@@ -168,6 +201,10 @@ export default class ZoomClient {
   }
 
   async deleteWebinar(webinarID: string): Promise<void> {
+
+    if (!jwt.verify(this.#token, this.#secretKey)) {
+      this.refreshToken();
+    }
     return new Promise(async (resolve, reject) => {
       try {
         const res = await this._zoom.delete(`/webinars/${webinarID}`);
@@ -195,6 +232,10 @@ export default class ZoomClient {
   }
 
   async updateWebinar({ ...params }: UpdateWebinarParams) {
+
+    if (!jwt.verify(this.#token, this.#secretKey)) {
+      this.refreshToken();
+    }
     return new Promise(async (resolve, reject) => {
       const { options } = params;
       // recurrence always requires a type

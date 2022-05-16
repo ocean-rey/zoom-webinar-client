@@ -7,12 +7,14 @@ export default class ZoomClient {
     #user;
     #apiKey;
     #secretKey;
+    #tokenExpiry;
     constructor({ apiKey, secretKey, timezone, user }) {
         this.#timezone = timezone ?? "Asia/Riyadh";
         this.#user = user;
+        this.#tokenExpiry = Math.floor(Date.now() / 1000) + 10000;
         this.#token = jwt.sign({
             iss: apiKey,
-            exp: Math.floor(Date.now() / 1000) + 10000, // this can probably be simplified lol
+            exp: this.#tokenExpiry, // this can probably be simplified lol
         }, secretKey); // initialize the jwt
         this.#apiKey = apiKey;
         this.#secretKey = secretKey;
@@ -22,6 +24,7 @@ export default class ZoomClient {
         });
     }
     async refreshToken() {
+        this.#tokenExpiry = Math.floor(Date.now() / 1000) + 10000;
         this.#token = jwt.sign({
             iss: this.#apiKey,
             exp: Math.floor(Date.now() / 1000) + 10000,
@@ -35,7 +38,7 @@ export default class ZoomClient {
         if (!(params.start && params.duration && params.name)) {
             throw new Error("start, duration, and name are required parameters!");
         }
-        if (!jwt.verify(this.#token, this.#secretKey)) {
+        if (Math.floor(Date.now() / 1000) < this.#tokenExpiry) {
             this.refreshToken();
         }
         return new Promise(async (resolve, reject) => {
@@ -77,7 +80,7 @@ export default class ZoomClient {
         });
     }
     async createRecurringWebinar({ ...options }) {
-        if (!jwt.verify(this.#token, this.#secretKey)) {
+        if (Math.floor(Date.now() / 1000) < this.#tokenExpiry) {
             this.refreshToken();
         }
         return new Promise(async (resolve, reject) => {
@@ -129,7 +132,7 @@ export default class ZoomClient {
         });
     }
     async registerToWebinar({ webinarID, firstName, lastName, email, }) {
-        if (!jwt.verify(this.#token, this.#secretKey)) {
+        if (Math.floor(Date.now() / 1000) < this.#tokenExpiry) {
             this.refreshToken();
         }
         return new Promise(async (resolve, reject) => {
@@ -149,7 +152,7 @@ export default class ZoomClient {
         });
     }
     async getWebinarAttendees(webinarID) {
-        if (!jwt.verify(this.#token, this.#secretKey)) {
+        if (Math.floor(Date.now() / 1000) < this.#tokenExpiry) {
             this.refreshToken();
         }
         return new Promise(async (resolve, reject) => {
@@ -170,7 +173,7 @@ export default class ZoomClient {
         });
     }
     async deleteWebinar(webinarID) {
-        if (!jwt.verify(this.#token, this.#secretKey)) {
+        if (Math.floor(Date.now() / 1000) < this.#tokenExpiry) {
             this.refreshToken();
         }
         return new Promise(async (resolve, reject) => {
@@ -196,7 +199,7 @@ export default class ZoomClient {
         });
     }
     async updateWebinar({ ...params }) {
-        if (!jwt.verify(this.#token, this.#secretKey)) {
+        if (Math.floor(Date.now() / 1000) < this.#tokenExpiry) {
             this.refreshToken();
         }
         return new Promise(async (resolve, reject) => {

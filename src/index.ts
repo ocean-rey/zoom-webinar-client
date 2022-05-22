@@ -3,44 +3,30 @@ import axios, { AxiosInstance, AxiosResponse } from "axios";
 
 export default class ZoomClient {
   _zoom: AxiosInstance;
-  #token: string;
   #timezone: string;
   #user: string;
   #apiKey: string;
   #secretKey: string;
-  #tokenExpiry: number;
   constructor({ apiKey, secretKey, timezone, user }: ZoomClientParams) {
     this.#timezone = timezone ?? "Asia/Riyadh";
     this.#user = user;
-    this.#tokenExpiry = Math.floor(Date.now() / 1000) + 10000;
-    this.#token = jwt.sign(
-      {
-        iss: apiKey,
-        exp: this.#tokenExpiry, // this can probably be simplified lol
-      },
-      secretKey
-    ); // initialize the jwt
     this.#apiKey = apiKey;
     this.#secretKey = secretKey;
     this._zoom = axios.create({
       baseURL: "https://api.zoom.us/v2",
-      headers: { Authorization: `Bearer ${this.#token}` },
     });
   }
 
-  async refreshToken() {
-    this.#tokenExpiry = Math.floor(Date.now() / 1000) + 10000;
-    this.#token = jwt.sign(
+  getToken() {
+    const tokenExpiry = Math.floor(Date.now() / 1000) + 1000;
+    const token = jwt.sign(
       {
         iss: this.#apiKey,
         exp: Math.floor(Date.now() / 1000) + 10000,
       },
       this.#secretKey
     );
-    this._zoom = axios.create({
-      baseURL: "https://api.zoom.us/v2",
-      headers: { Authorization: `Bearer ${this.#token}` },
-    });
+    return token;
   }
 
   async createSingleWebinar({
@@ -48,9 +34,6 @@ export default class ZoomClient {
   }: CreateWebinarBaseParams): Promise<string> {
     if (!(params.start && params.duration && params.name)) {
       throw new Error("start, duration, and name are required parameters!");
-    }
-    if (Math.floor(Date.now() / 1000) < this.#tokenExpiry) {
-      this.refreshToken();
     }
     return new Promise<string>(async (resolve, reject) => {
       const startTime = new Date(params.start).toISOString();
@@ -81,7 +64,9 @@ export default class ZoomClient {
         ? `users/${params.account}/webinars`
         : `users/${this.#user}/webinars`;
       try {
-        const response = await this._zoom.post(requestURL, requestBody);
+        const response = await this._zoom.post(requestURL, requestBody, {
+          headers: { Authorization: `Bearer ${this.getToken()}` },
+        });
         const webinarID = `${response.data.id}`;
         resolve(webinarID);
       } catch (error) {
@@ -93,9 +78,6 @@ export default class ZoomClient {
   async createRecurringWebinar({
     ...options
   }: CreateRecurringWebinarParams): Promise<string> {
-    if (Math.floor(Date.now() / 1000) < this.#tokenExpiry) {
-      this.refreshToken();
-    }
     return new Promise<string>(async (resolve, reject) => {
       const startTime = new Date(options.start).toISOString();
       const registrationCode = options.approval
@@ -137,7 +119,9 @@ export default class ZoomClient {
         ? `users/${options.account}/webinars`
         : `users/${this.#user}/webinars`;
       try {
-        const response = await this._zoom.post(requestURL, requestBody);
+        const response = await this._zoom.post(requestURL, requestBody, {
+          headers: { Authorization: `Bearer ${this.getToken()}` },
+        });
         const webinarID = `${response.data.id}`;
         resolve(webinarID);
       } catch (error) {
@@ -152,9 +136,6 @@ export default class ZoomClient {
     lastName,
     email,
   }: RegisterToWebinarParams): Promise<string> {
-    if (Math.floor(Date.now() / 1000) < this.#tokenExpiry) {
-      this.refreshToken();
-    }
     return new Promise(async (resolve, reject) => {
       const requestBody = {
         first_name: firstName,
@@ -164,7 +145,10 @@ export default class ZoomClient {
       try {
         const resposne = await this._zoom.post(
           `/webinars/${webinarID}/registrants`,
-          requestBody
+          requestBody,
+          {
+            headers: { Authorization: `Bearer ${this.getToken()}` },
+          }
         );
         const joinURL = resposne.data.join_url;
         resolve(joinURL);
@@ -175,13 +159,13 @@ export default class ZoomClient {
   }
 
   async getWebinarAttendees(webinarID: string): Promise<Participation[]> {
-    if (Math.floor(Date.now() / 1000) < this.#tokenExpiry) {
-      this.refreshToken();
-    }
     return new Promise(async (resolve, reject) => {
       try {
         const instancesResponse = await this._zoom.get(
-          `/past_webinars/${webinarID}/instances`
+          `/past_webinars/${webinarID}/instances`,
+          {
+            headers: { Authorization: `Bearer ${this.getToken()}` },
+          }
         ); // because if its recurring we need to get attendance for every instances.
         const instances = instancesResponse.data.webinars.map(
           (x: { uuid: any }) => encodeURIComponent(encodeURIComponent(x.uuid)) // https://marketplace.zoom.us/docs/api-reference/zoom-api/methods/#operation/reportWebinarParticipants yes its this dumb
@@ -190,7 +174,11 @@ export default class ZoomClient {
         for (let i = 0; i < instances.length; i++) {
           // iterate through instances
           userList = userList.concat(
-            await paginationWebinarParticipants(this._zoom, instances[i])
+            await paginationWebinarParticipants(
+              this._zoom,
+              instances[i],
+              this.getToken()
+            )
           );
         }
         resolve(userList);
@@ -201,12 +189,11 @@ export default class ZoomClient {
   }
 
   async deleteWebinar(webinarID: string): Promise<void> {
-    if (Math.floor(Date.now() / 1000) < this.#tokenExpiry) {
-      this.refreshToken();
-    }
     return new Promise(async (resolve, reject) => {
       try {
-        const res = await this._zoom.delete(`/webinars/${webinarID}`);
+        const res = await this._zoom.delete(`/webinars/${webinarID}`, {
+          headers: { Authorization: `Bearer ${this.getToken()}` },
+        });
         switch (res.status) {
           case 204:
           case 200:
@@ -231,9 +218,6 @@ export default class ZoomClient {
   }
 
   async updateWebinar({ ...params }: UpdateWebinarParams) {
-    if (Math.floor(Date.now() / 1000) < this.#tokenExpiry) {
-      this.refreshToken();
-    }
     return new Promise(async (resolve, reject) => {
       const { options } = params;
       // recurrence always requires a type
@@ -434,6 +418,7 @@ function weekdaysToCode(day: DayOfWeek) {
 async function paginationWebinarParticipants(
   zoom: AxiosInstance,
   webinarID: string,
+  token: string,
   nextPageToken?: string,
   results?: Participation[]
 ): Promise<Participation[]> {
@@ -444,7 +429,10 @@ async function paginationWebinarParticipants(
     const response = await zoom.get(
       `/report/webinars/${webinarID}/participants?page_size=300${
         nextPageToken ? `&nextPageToken=${nextPageToken}` : ``
-      }`
+      }`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
     );
     results = results.concat(response.data.participants);
     if (response.data.next_page_token) {
@@ -452,6 +440,7 @@ async function paginationWebinarParticipants(
       return paginationWebinarParticipants(
         zoom,
         webinarID,
+        token,
         nextPageToken,
         results
       );

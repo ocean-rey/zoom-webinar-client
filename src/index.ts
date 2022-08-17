@@ -163,16 +163,25 @@ export default class ZoomClient {
       .get(`/past_webinars/${webinarID}/instances`, {
         headers: { Authorization: `Bearer ${this.getToken()}` },
       })
-      .then((instancesResponse: AxiosInstance) => {
+      .then(async (instancesResponse: AxiosResponse) => {
         const instances = instancesResponse.data.webinars.map(
           (x: { uuid: any }) => encodeURIComponent(encodeURIComponent(x.uuid)) // https://marketplace.zoom.us/docs/api-reference/zoom-api/methods/#operation/reportWebinarParticipants yes its this dumb
         );
-        var userList: Participation[] = []; // this is what we will eventually resolve
+        let userList: Participation[] = [];
         return Promise.all(
           instances.map((instance: string) =>
-            paginationWebinarParticipants(this._zoom, instance, this.getToken())
+            paginationWebinarParticipants(
+              this._zoom,
+              instance,
+              this.getToken()
+            ).then((res) => {
+              userList = userList.concat(res);
+              return;
+            })
           )
-        );
+        ).then(() => {
+          return userList;
+        });
       });
   }
 
@@ -406,35 +415,42 @@ function weekdaysToCode(day: DayOfWeek) {
 async function paginationWebinarParticipants(
   zoom: AxiosInstance,
   webinarID: string,
-  token: string
+  token: string,
+  nextPageToken?: string,
+  pageSize?: number,
+  results?: Participation[]
 ): Promise<Participation[]> {
-  return new Promise(async (resolve, reject) => {
-    let results: Participation[] = [];
-    try {
-      const response = await zoom.get(
-        `/report/webinars/${webinarID}/participants?page_size=300`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      results = results.concat(response.data.participants);
-
-      if (response.data.next_page_token) {
-        const nextPageToken = response.data.next_page_token;
-        const nextResponse = await zoom.get(
-          `/report/webinars/${webinarID}/participants?page_size=300&nextPageToken=${nextPageToken}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        results = results.concat(nextResponse.data.participants);
+  return zoom
+    .get(
+      `/report/webinars/${webinarID}/participants?page_size=${
+        pageSize ?? 300
+      }&${nextPageToken ? `&nextPageToken=${nextPageToken}` : ``}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
       }
-      return resolve(results);
-    } catch (err) {
-      return reject(err);
-    }
-  });
+    )
+    .then((response: AxiosResponse) => {
+      const totalRecords = response.data.total_records;
+      const currentResultsLength = response.data.participants.length;
+      const rest = totalRecords - currentResultsLength;
+
+      results = results
+        ? results.concat(response.data.participants)
+        : [].concat(response.data.participants);
+      if (response.data.next_page_token && results.length < totalRecords) {
+        nextPageToken = response.data.next_page_token;
+
+        return paginationWebinarParticipants(
+          zoom,
+          webinarID,
+          token,
+          nextPageToken,
+          rest > 300 ? 300 : rest,
+          results
+        );
+      }
+      return results;
+    });
 }
 
 // HELPFUL TYPES

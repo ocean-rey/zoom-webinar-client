@@ -159,33 +159,30 @@ export default class ZoomClient {
   }
 
   async getWebinarAttendees(webinarID: string): Promise<Participation[]> {
-    return new Promise(async (resolve, reject) => {
-      try {
-        const instancesResponse = await this._zoom.get(
-          `/past_webinars/${webinarID}/instances`,
-          {
-            headers: { Authorization: `Bearer ${this.getToken()}` },
-          }
-        ); // because if its recurring we need to get attendance for every instances.
+    return this._zoom
+      .get(`/past_webinars/${webinarID}/instances`, {
+        headers: { Authorization: `Bearer ${this.getToken()}` },
+      })
+      .then(async (instancesResponse: AxiosResponse) => {
         const instances = instancesResponse.data.webinars.map(
           (x: { uuid: any }) => encodeURIComponent(encodeURIComponent(x.uuid)) // https://marketplace.zoom.us/docs/api-reference/zoom-api/methods/#operation/reportWebinarParticipants yes its this dumb
         );
-        var userList: Participation[] = []; // this is what we will eventually resolve
-        for (let i = 0; i < instances.length; i++) {
-          // iterate through instances
-          userList = userList.concat(
-            await paginationWebinarParticipants(
+        let userList: Participation[] = [];
+        return Promise.all(
+          instances.map((instance: string) =>
+            paginationWebinarParticipants(
               this._zoom,
-              instances[i],
+              instance,
               this.getToken()
-            )
-          );
-        }
-        resolve(userList);
-      } catch (error) {
-        reject(error);
-      }
-    });
+            ).then((res) => {
+              userList = userList.concat(res);
+              return;
+            })
+          )
+        ).then(() => {
+          return userList;
+        });
+      });
   }
 
   async deleteWebinar(webinarID: string): Promise<void> {
@@ -420,36 +417,40 @@ async function paginationWebinarParticipants(
   webinarID: string,
   token: string,
   nextPageToken?: string,
+  pageSize?: number,
   results?: Participation[]
 ): Promise<Participation[]> {
-  if (!results) {
-    results = [];
-  }
-  try {
-    const response = await zoom.get(
-      `/report/webinars/${webinarID}/participants?page_size=300${
-        nextPageToken ? `&nextPageToken=${nextPageToken}` : ``
-      }`,
+  return zoom
+    .get(
+      `/report/webinars/${webinarID}/participants?page_size=${
+        pageSize ?? 300
+      }&${nextPageToken ? `&nextPageToken=${nextPageToken}` : ``}`,
       {
         headers: { Authorization: `Bearer ${token}` },
       }
-    );
-    results = results.concat(response.data.participants);
-    if (response.data.next_page_token) {
-      nextPageToken = response.data.next_page_token;
-      return paginationWebinarParticipants(
-        zoom,
-        webinarID,
-        token,
-        nextPageToken,
-        results
-      );
-    } else {
+    )
+    .then((response: AxiosResponse) => {
+      const totalRecords = response.data.total_records;
+      const currentResultsLength = response.data.participants.length;
+      const rest = totalRecords - currentResultsLength;
+
+      results = results
+        ? results.concat(response.data.participants)
+        : [].concat(response.data.participants);
+      if (response.data.next_page_token && results.length < totalRecords) {
+        nextPageToken = response.data.next_page_token;
+
+        return paginationWebinarParticipants(
+          zoom,
+          webinarID,
+          token,
+          nextPageToken,
+          rest > 300 ? 300 : rest,
+          results
+        );
+      }
       return results;
-    }
-  } catch (err) {
-    throw err;
-  }
+    });
 }
 
 // HELPFUL TYPES

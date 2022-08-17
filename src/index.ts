@@ -406,37 +406,35 @@ function weekdaysToCode(day: DayOfWeek) {
 async function paginationWebinarParticipants(
   zoom: AxiosInstance,
   webinarID: string,
-  token: string,
-  results?: Participation[]
+  token: string
 ): Promise<Participation[]> {
-  if (!results) {
-    results = [];
-  }
-  try {
-    const response = await zoom.get(
-      `/report/webinars/${webinarID}/participants?page_size=300`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
-
-    results = results.concat(response.data.participants);
-
-    if (response.data.next_page_token) {
-      const nextPageToken = response.data.next_page_token;
-      const nextResponse = await zoom.get(
-        `/report/webinars/${webinarID}/participants?page_size=300&nextPageToken=${nextPageToken}`,
+  return new Promise(async (resolve, reject) => {
+    let results: Participation[] = [];
+    try {
+      const response = await zoom.get(
+        `/report/webinars/${webinarID}/participants?page_size=300`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      results = results.concat(nextResponse.data.participants);
-    }
 
-    return results;
-  } catch (err) {
-    throw err;
-  }
+      results = results.concat(response.data.participants);
+
+      if (response.data.next_page_token) {
+        const nextPageToken = response.data.next_page_token;
+        const nextResponse = await zoom.get(
+          `/report/webinars/${webinarID}/participants?page_size=300&nextPageToken=${nextPageToken}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        results = results.concat(nextResponse.data.participants);
+      }
+      return resolve(results);
+    } catch (err) {
+      return reject(err);
+    }
+  });
 }
 
 // HELPFUL TYPES
